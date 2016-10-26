@@ -3,7 +3,6 @@ import sys
 import subprocess
 import time
 from pylab import *
-#import draw_plot
 import random
 import numpy as np
 import pyglet
@@ -13,21 +12,6 @@ import datetime
 import matplotlib.pyplot as plt
 from matplotlib import dates
 from GCMClient import GCMClient
-
-sensors = []
-#g_FixedT = [99,99]
-#g_CurT   = [0,0]
-#g_N = [0.2, 20]
-INTERVAL = 5000
-
-
-#class eventHandler:
-    #def fixTemp(self, event):
-    #    print "Button click event = %s" % event
-#	global g_FixedT
-#	g_FixedT = g_CurT
-#	print g_CurT, g_FixedT
-
 
 class brewChart(object):
     def __init__(self, tempSource):
@@ -46,11 +30,9 @@ class brewChart(object):
         self.gcm = GCMClient()
         self.AlmSuppressInerval = int( self.config.get('Common', 'AlarmFreq'))
         
-        self.RegIDs = [self.config.get('Common', 'RegIDs').split(',')]
-        if not self.RegIDs:
-            f = open("/tmp/regid.txt", "r")
-            self.RegIDs = [[line[:-1]] for line in f]
-            f.close()
+        f = open("/tmp/regid.txt", "r")
+        self.RegIDs = [line[:-1] for line in f]
+        f.close()
         
         self.AvgSamplesNum = int(self.config.get('Common', 'AvgSamplesNum'))
         self.create_chart()
@@ -75,12 +57,6 @@ class brewChart(object):
         
         return arr
 
-    def raiseAlarm(self):
-        print "ALARMA"
-        music = pyglet.resource.media('01. MOSCOW CALLING.mp3')
-        music.play()
-        pyglet.app.run()
- 
     def update_chart(self, ax):
         self.config.read('config.cfg')
         fixit1 = self.config.get('Conf1', 'FixTemp')
@@ -129,9 +105,8 @@ class brewChart(object):
 
             print "%s %.2f %.2f avg = %.2f %.2f  diff = %.2f %.2f " % (time.asctime(time.localtime(x[-1])).split()[3], y1[-1], y2[-1], average1, average2, cur_temp[0]-average1, cur_temp[1]-average2)
 
-            if self.GCMSend.lower() == "alarm" and msgType == 'alarma':
-                self.gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), self.RegIDs[0])            
-            if self.GCMSend.lower() == "yes":
+
+            if self.GCMSend.lower() == "yes" or (self.GCMSend.lower() == "alarm" and msgType == 'alarma'):
                 self.gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), self.RegIDs[0])
 
         else:

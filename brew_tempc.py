@@ -42,14 +42,15 @@ if __name__ == "__main__":
     AlmSuppressInerval = int( config.get('Common', 'AlarmFreq'))
     AvgSamplesNum = int( config.get('Common', 'AvgSamplesNum'))
     LogFileName = config.get('Common', 'LogFileName')
-    RegIDs = [config.get('Common', 'RegIDs').split(',')]
 
-    if not RegIDs:
-        f = open("/tmp/regid.txt", "r")
-        RegIDs = [[line[:-1]] for line in f]
-        f.close()
+
+    f = open("/tmp/regid.txt", "r")
+    RegIDs = [line[:-1] for line in f]
+    f.close()
+    print RegIDs
 
     if len(RegIDs) == 0:
+        print "GCM Reg ID not found"
         exit()
 
     tempSource = config.get('Common', 'Sensors')
@@ -68,8 +69,8 @@ if __name__ == "__main__":
 
     gcm = GCMClient()
     sensors = read_data(LogFileName)
-    if GCMSend.lower() in ('yes', 'alarm'):
-        gcm.send("bulk", sensors, RegIDs[0])
+    #if GCMSend.lower() in ('yes', 'alarm'):
+    #    gcm.send("bulk", sensors, RegIDs[0])
 
     tempArray1 = []
     tempArray2 = []
@@ -125,11 +126,9 @@ if __name__ == "__main__":
                         lastAlarm2 = now
                     
 
-                if GCMSend.lower() == 'yes':
+                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma")::
                     gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
-                elif GCMSend.lower() == 'alarm' and msgType == "alarma":
-                    gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
-
+                
             else:
                 print "no data from sensors"
 
