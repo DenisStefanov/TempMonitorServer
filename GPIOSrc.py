@@ -4,8 +4,8 @@ import time
 
 class GPIOSrc(object):
     def __init__(self):
-        os.system('modprobe w1-gpio')
-        os.system('modprobe w1-therm')
+#        os.system('modprobe w1-gpio')
+#        os.system('modprobe w1-therm')
 
         self.device_file = []
         base_dir = '/sys/bus/w1/devices/'

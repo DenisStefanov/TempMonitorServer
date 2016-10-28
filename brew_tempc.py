@@ -7,6 +7,8 @@ import time
 import datetime
 import ConfigParser
 import numpy as np
+import daemon
+import logging 
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -33,6 +35,19 @@ def read_data(filename):
     return s
      
 if __name__ == "__main__":
+
+    logger = logging.getLogger("TempmonLog")
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    handler = logging.FileHandler("/var/log/tempmon.log")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    with daemon.DaemonContext():
+        brew_tempc()
+
+def brew_tempc():
+    logger.info("Starting!") 
     signal.signal(signal.SIGINT, signal_handler)
 
     config = ConfigParser.ConfigParser()
@@ -43,15 +58,15 @@ if __name__ == "__main__":
     AvgSamplesNum = int( config.get('Common', 'AvgSamplesNum'))
     LogFileName = config.get('Common', 'LogFileName')
 
-
-    f = open("/tmp/regid.txt", "r")
-    RegIDs = [line[:-1] for line in f]
-    f.close()
-    print RegIDs
+    RegIDs=''
+    #f = open("/tmp/regid.txt", "r")
+    #RegIDs = [line[:-1] for line in f]
+    #f.close()
+    #print RegIDs
 
     if len(RegIDs) == 0:
         print "GCM Reg ID not found"
-        exit()
+        #exit()
 
     tempSource = config.get('Common', 'Sensors')
     BBChart = config.get('Common', 'BBChart')
@@ -126,12 +141,12 @@ if __name__ == "__main__":
                         lastAlarm2 = now
                     
 
-                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma")::
+                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                     gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
                 
             else:
-                print "no data from sensors"
+                print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
             print "================================================="
             time.sleep(updInterval)
-   
+        logger.info("Stopped!") 
