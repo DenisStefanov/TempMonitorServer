@@ -19,11 +19,11 @@ class GCMClient():
                      }
         data = json.dumps(json_data)
 
-        print data
-
         headers = {'Content-Type': 'application/json', 'Authorization': 'key=%s' % APIKey}
         req = urllib2.Request(url, data, headers)
-        
+
+        print url, data, headers
+
         try:
             f = urllib2.urlopen(req)
             response = json.loads(f.read())

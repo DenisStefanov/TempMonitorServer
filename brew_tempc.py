@@ -7,49 +7,16 @@ import time
 import datetime
 import ConfigParser
 import numpy as np
-import daemon
-import logging 
+from daemon import runner
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from chart import brewChart
 from GCMClient import GCMClient
 
-CONFIG_FILE = 'config.cfg'
-
-def signal_handler(signal, frame):
-    print 'You pressed Ctrl+C!'
-    sys.exit(0)
-
-def read_data(filename):
-    s = ""
-    try:
-        f = open(filename, 'r')
-    except IOError:
-        return "%s, 0.0, 0.0" % str(time.time())
-
-    for line in f.readlines()[-100:]:
-        s = s + line
-
-    f.close()    
-    return s
-     
-if __name__ == "__main__":
-
-    logger = logging.getLogger("TempmonLog")
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    handler = logging.FileHandler("/var/log/tempmon.log")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    with daemon.DaemonContext():
-        brew_tempc()
+CONFIG_FILE = '/home/pi/TempMonitorServer/config.cfg'
 
 def brew_tempc():
-    logger.info("Starting!") 
-    signal.signal(signal.SIGINT, signal_handler)
-
     config = ConfigParser.ConfigParser()
 
     config.read(CONFIG_FILE)
@@ -59,14 +26,14 @@ def brew_tempc():
     LogFileName = config.get('Common', 'LogFileName')
 
     RegIDs=''
-    #f = open("/tmp/regid.txt", "r")
-    #RegIDs = [line[:-1] for line in f]
-    #f.close()
-    #print RegIDs
+    f = open("/tmp/regid.txt", "r")
+    RegIDs = [[line[:-1] for line in f]]
+    f.close()
+    print RegIDs
 
     if len(RegIDs) == 0:
         print "GCM Reg ID not found"
-        #exit()
+        exit()
 
     tempSource = config.get('Common', 'Sensors')
     BBChart = config.get('Common', 'BBChart')
@@ -83,18 +50,15 @@ def brew_tempc():
         exit()
 
     gcm = GCMClient()
-    sensors = read_data(LogFileName)
-    #if GCMSend.lower() in ('yes', 'alarm'):
-    #    gcm.send("bulk", sensors, RegIDs[0])
 
     tempArray1 = []
     tempArray2 = []
     
-    for rec in sensors.split('\n'):
+    #for rec in sensors.split('\n'):
         #print rec
-        if rec:
-            tempArray1.append(float(rec.split(',')[1]))            
-            tempArray2.append(float(rec.split(',')[2]))
+    #    if rec:
+    #        tempArray1.append(float(rec.split(',')[1]))            
+    #        tempArray2.append(float(rec.split(',')[2]))
 
     if BBChart.lower() == 'yes':
         chart = brewChart(tempSource)
@@ -122,6 +86,7 @@ def brew_tempc():
 
                 now = time.asctime()
                 print now, cur_temp
+
                 fd = open(LogFileName,'a')
                 fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
                 fd.close()
@@ -148,5 +113,20 @@ def brew_tempc():
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
             print "================================================="
+            sys.stdout.flush()
             time.sleep(updInterval)
-        logger.info("Stopped!") 
+
+class MyDaemon():
+    def __init__(self):
+        self.stdin_path = '/dev/null'
+        self.stdout_path = '/var/log/tempmon.log'
+        self.stderr_path = '/var/log/tempmon.log'
+        self.pidfile_path =  '/tmp/tempmon.pid'
+        self.pidfile_timeout = 5
+    def run(self):
+        brew_tempc()
+
+if __name__ == "__main__":
+    app = MyDaemon()
+    daemon_runner = runner.DaemonRunner(app)
+    daemon_runner.do_action()
