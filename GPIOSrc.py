@@ -1,11 +1,8 @@
-import os
 import glob
 import time
 
 class GPIOSrc(object):
     def __init__(self):
-#        os.system('modprobe w1-gpio')
-#        os.system('modprobe w1-therm')
 
         self.device_file = []
         base_dir = '/sys/bus/w1/devices/'
@@ -14,7 +11,6 @@ class GPIOSrc(object):
         for i, folder in enumerate(device_folders):
 	    self.device_file.append(folder + '/w1_slave')
         print self.device_file
-
     
     def read_temp_raw(self, device_f):
         f = open(device_f, 'r')
@@ -40,5 +36,4 @@ class GPIOSrc(object):
         except Exception, e:
             print("Exception is caught [%s]" % (e))
             return ""
-
 
