@@ -14,19 +14,14 @@ from DGTSrc import DGTSrc
 from chart import brewChart
 from GCMClient import GCMClient
 
-CONFIG_FILE = '/home/pi/TempMonitorServer/config.cfg'
+LOCAL_PATH = os.getcwd()
+CONFIG_FILE = LOCAL_PATH + '/config.cfg'
+REGID_FILE = LOCAL_PATH + '/regid.txt'
 
 def brew_tempc():
-    config = ConfigParser.ConfigParser()
-
-    config.read(CONFIG_FILE)
-    updInterval = int( config.get('Common', 'UpdateInterval'))
-    AlmSuppressInerval = int( config.get('Common', 'AlarmFreq'))
-    AvgSamplesNum = int( config.get('Common', 'AvgSamplesNum'))
-    LogFileName = config.get('Common', 'LogFileName')
 
     RegIDs=''
-    f = open("/tmp/regid.txt", "r")
+    f = open(REGID_FILE, "r")
     RegIDs = [[line[:-1] for line in f]]
     f.close()
     print RegIDs
@@ -35,11 +30,13 @@ def brew_tempc():
         print "GCM Reg ID not found"
         exit()
 
-    tempSource = config.get('Common', 'Sensors')
-    BBChart = config.get('Common', 'BBChart')
-    GCMSend = config.get('Common', 'GCMSend')
+    config = ConfigParser.ConfigParser()
+    config.read(CONFIG_FILE)
+    tempSource = config.get('Common', 'sensors')
+    BBChart = config.get('Common', 'bbchart')
 
-    lastAlarm1 = lastAlarm2 = None
+
+    lastAlarm = None
     
     if tempSource == 'gpio':
         tempSource = GPIOSrc()
@@ -54,26 +51,22 @@ def brew_tempc():
     tempArray1 = []
     tempArray2 = []
     
-    #for rec in sensors.split('\n'):
-        #print rec
-    #    if rec:
-    #        tempArray1.append(float(rec.split(',')[1]))            
-    #        tempArray2.append(float(rec.split(',')[2]))
-
     if BBChart.lower() == 'yes':
         chart = brewChart(tempSource)
     else:
         while True:
-            config.read('config.cfg')
-            GCMSend = config.get('Common', 'GCMSend')
-
-            fixit1 = config.get('Conf1', 'FixTemp')
-            delta1 = float(config.get('Conf1', 'Delta'))
-            abstemp1 = float(config.get('Conf1', 'Absolute'))
-
-            fixit2 = config.get('Conf2', 'FixTemp')
-            delta2 = float(config.get('Conf2', 'Delta'))
-            abstemp2 = float(config.get('Conf2', 'Absolute'))
+            config.read(CONFIG_FILE)
+	    updInterval = int( config.get('Common', 'updateinterval'))
+            AlmSuppressInerval = int( config.get('Common', 'alarmfreq'))
+            AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
+            LogFileName = config.get('Common', 'logfilename')
+            GCMSend = config.get('Common', 'gcmsend')
+            fixit1 = config.get('Conf1', 'fixtemp')
+            delta1 = float(config.get('Conf1', 'delta'))
+            abstemp1 = float(config.get('Conf1', 'absolute'))
+            fixit2 = config.get('Conf2', 'fixtemp')
+            delta2 = float(config.get('Conf2', 'delta'))
+            abstemp2 = float(config.get('Conf2', 'absolute'))
 
             cur_temp = tempSource.getData()
             if cur_temp:
@@ -95,19 +88,18 @@ def brew_tempc():
 
                 if fixit1.lower() == "yes" and (cur_temp[0] > (average1 + delta1) or (cur_temp[0] > abstemp1)):
                     now = datetime.datetime.now()
-                    if not lastAlarm1 or (now - lastAlarm1).total_seconds() > AlmSuppressInerval:
+                    if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
                         msgType = 'alarma'
-                        lastAlarm1 = now 
+                        lastAlarm = now 
 
                 if fixit2.lower() == "yes" and (cur_temp[1] > (average2 + delta2) or (cur_temp[1] > abstemp2)):
                     now = datetime.datetime.now()                    
-                    if  not lastAlarm2 or (now - lastAlarm2).total_seconds() > AlmSuppressInerval:
+                    if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
                         msgType = 'alarma'
-                        lastAlarm2 = now
+                        lastAlarm = now
                     
-
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                    gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
+                    gcm.send(msgType, "%s,%s,%s,%s,%s\n" % (time.asctime(), cur_temp[0], abstemp1, cur_temp[1], abstemp2), RegIDs[0])
                 
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
