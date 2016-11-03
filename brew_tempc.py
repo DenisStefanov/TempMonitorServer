@@ -9,7 +9,7 @@ from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from GCMClient import GCMClient
 
-LOCAL_PATH = os.getcwd()
+LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
 REGID_FILE = LOCAL_PATH + '/regid.txt'
 
@@ -91,7 +91,7 @@ def brew_tempc():
                     lastAlarm = now
                 
             if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                gcm.send(msgType, "%s,%s,%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
+                gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
             
         else:
             print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
