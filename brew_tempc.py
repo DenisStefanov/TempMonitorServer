@@ -11,25 +11,18 @@ from GCMClient import GCMClient
 
 LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
-REGID_FILE = LOCAL_PATH + '/regid.txt'
 
 def brew_tempc():
-
-    RegIDs=''
-    f = open(REGID_FILE, "r")
-    RegIDs = [[line[:-1] for line in f]]
-    f.close()
-    print RegIDs
-
-    if len(RegIDs) == 0:
-        print "GCM Reg ID not found"
-        exit()
 
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     BBChart = config.get('Common', 'bbchart')
+    RegIDs = config.get('Common', 'regid')
 
+    if len(RegIDs) == 0:
+        print "GCM Reg ID not found"
+        exit()
 
     lastAlarm = None
     
