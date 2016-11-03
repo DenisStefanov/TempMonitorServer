@@ -18,9 +18,9 @@ def brew_tempc():
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     BBChart = config.get('Common', 'bbchart')
-    RegIDs = config.get('Common', 'regid')
+    RegID = [config.get('Common', 'regid')]
 
-    if len(RegIDs) == 0:
+    if len(RegID) == 0:
         print "GCM Reg ID not found"
         exit()
 
@@ -84,7 +84,7 @@ def brew_tempc():
                     lastAlarm = now
                 
             if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegIDs[0])
+                gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegID)
             
         else:
             print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
