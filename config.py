@@ -1,7 +1,8 @@
+import os
 import sys
 import ConfigParser
 
-CONFIG_FILE = '/home/pi/TempMonitorServer/config.cfg'
+CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 
 if __name__ == "__main__":
 	
@@ -12,6 +13,7 @@ if __name__ == "__main__":
 	configList = sys.argv[2].split(";")
 
 	config = ConfigParser.RawConfigParser()
+
 	config.read(CONFIG_FILE)
 
 	if command == "set":
