@@ -8,17 +8,18 @@ from daemon import runner
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from GCMClient import GCMClient
+from GCMXMPPClient import GCMXMPPClient
 
 LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
 
 def brew_tempc():
-
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     BBChart = config.get('Common', 'bbchart')
     RegID = [config.get('Common', 'regid')]
+    updInterval = int( config.get('Common', 'updateinterval'))
 
     if len(RegID) == 0:
         print "GCM Reg ID not found"
@@ -34,62 +35,66 @@ def brew_tempc():
         print "Wrong sensor type configured"
         exit()
 
-    gcm = GCMClient()
+    #gcm = GCMClient()
+    gcm = GCMXMPPClient()
 
     tempArray1 = []
     tempArray2 = []
     
     while True:
-        config.read(CONFIG_FILE)
-	updInterval = int( config.get('Common', 'updateinterval'))
-        AlmSuppressInerval = int( config.get('Common', 'alarmfreq'))
-        AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
-        LogFileName = config.get('Common', 'logfilename')
-        GCMSend = config.get('Common', 'gcmsend')
-        fixit1 = config.get('Conf1', 'fixtemp')
-        delta1 = float(config.get('Conf1', 'delta'))
-        abstemp1 = float(config.get('Conf1', 'absolute'))
-        fixit2 = config.get('Conf2', 'fixtemp')
-        delta2 = float(config.get('Conf2', 'delta'))
-        abstemp2 = float(config.get('Conf2', 'absolute'))
+        if gcm.serverRunning:
+            config.read(CONFIG_FILE)
+            AlmSuppressInerval = int( config.get('Common', 'alarmfreq'))
+            AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
+            LogFileName = config.get('Common', 'logfilename')
+            GCMSend = config.get('Common', 'gcmsend')
+            fixit1 = config.get('Conf1', 'fixtemp')
+            delta1 = float(config.get('Conf1', 'delta'))
+            abstemp1 = float(config.get('Conf1', 'absolute'))
+            fixit2 = config.get('Conf2', 'fixtemp')
+            delta2 = float(config.get('Conf2', 'delta'))
+            abstemp2 = float(config.get('Conf2', 'absolute'))
 
-        cur_temp = tempSource.getData()
-        if cur_temp:
-            tempArray1.append(cur_temp[0])
-            tempArray2.append(cur_temp[1])
-            average1 = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])
-            average2 = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
+            cur_temp = tempSource.getData()
+            if cur_temp:
+                tempArray1.append(cur_temp[0])
+                tempArray2.append(cur_temp[1])
+                average1 = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])
+                average2 = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
 
-            print "Average = ", average1, average2
+                print "Average = ", average1, average2
 
-            now = time.asctime()
-            print now, cur_temp
+                now = time.asctime()
+                print now, cur_temp
 
-            fd = open(LogFileName,'a')
-            fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
-            fd.close()
+                fd = open(LogFileName,'a')
+                fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
+                fd.close()
 
-            msgType = "upd"
+                msgType = "upd"
 
-            if fixit1.lower() == "yes" and (cur_temp[0] > (average1 + delta1) or (cur_temp[0] > abstemp1)):
-                now = datetime.datetime.now()
-                if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                    msgType = 'alarma'
-                    lastAlarm = now 
+                if fixit1.lower() == "yes" and (cur_temp[0] > (average1 + delta1) or (cur_temp[0] > abstemp1)):
+                    now = datetime.datetime.now()
+                    if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
+                        msgType = 'alarma'
+                        lastAlarm = now 
 
-            if fixit2.lower() == "yes" and (cur_temp[1] > (average2 + delta2) or (cur_temp[1] > abstemp2)):
-                now = datetime.datetime.now()                    
-                if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                    msgType = 'alarma'
-                    lastAlarm = now
-                
-            if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegID)
-            
-        else:
-            print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
+                if fixit2.lower() == "yes" and (cur_temp[1] > (average2 + delta2) or (cur_temp[1] > abstemp2)):
+                    now = datetime.datetime.now()                    
+                    if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
+                        msgType = 'alarma'
+                        lastAlarm = now
 
-        print "================================================="
+                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
+                    gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegID)
+
+            else:
+                print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
+
+            print "================================================="
+        
+        gcm.process()                
+        gcm.flush_queued_messages()
         sys.stdout.flush()
         time.sleep(updInterval)
 
