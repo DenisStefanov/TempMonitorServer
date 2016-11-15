@@ -11,6 +11,11 @@ CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 unacked_messages_quota = 100
 send_queue = []
 
+def random_id():
+  rid = ''
+  for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
+  return rid
+
 class GCMXMPPClient(object):
   def __init__(self):
     self.client = xmpp.Client('gcm.googleapis.com', debug=[])
@@ -37,12 +42,45 @@ class GCMXMPPClient(object):
         if regid:
           print "Got new REGID " + regid
           self.reconfigRegId(regid)
+          self.send_queue.append({'to': msg.get('from', None), 'message_id': random_id(), \
+                       'data' : {'type' : 'Notify', 'note' : "Registration ID has been updated"}})
+
       if data.get('message_type', None) == 'StopServer':
         self.serverRunning = False
+        self.send_queue.append({'to': msg.get('from', None), 'message_id':  random_id(), \
+                                  'data' : {'type' : 'Notify', 'note' : "Server stopped"}})
         print "Stopping server"
+
       if data.get('message_type', None) == 'StartServer':
         self.serverRunning = True
+        self.send_queue.append({'to': msg.get('from', None), 'message_id':  random_id(), \
+                                  'data' : {'type' : 'Notify', 'note' : "Server started"}})
         print "Starting server"
+
+      if data.get('message_type', None) == 'ConfigServerGet':
+        config = ConfigParser.RawConfigParser()
+        config.read(CONFIG_FILE)
+        self.send_queue.append({'to': msg.get('from', None), 'message_id':  random_id(), \
+                                  'data' : {'type' : 'ServerConfig', \
+                                   'Config' : 'Conf1,' + config.get('Conf1', 'fixtemp') + "," + \
+                                              config.get('Conf1', 'absolute') + ";" + 
+                                            'Conf2,' + config.get('Conf2', 'fixtemp') + "," + \
+                                              config.get('Conf2', 'absolute')}})
+        self.send_queue.append({'to': msg.get('from', None), 'message_id':  random_id(), \
+                                  'data' : {'type' : 'Notify', 'note' : "Server config sent to Client"}})
+        print "Server config sent downstream"
+
+      if data.get('message_type', None) == 'ReconfigServer':
+        config = ConfigParser.RawConfigParser()
+        config.read(CONFIG_FILE)
+        for key, value in data.items():
+          if key != 'message_type':
+            config.set(key, value.split(",")[0], value.split(",")[1])
+        with open(CONFIG_FILE, 'wb') as configfile:
+          config.write(configfile)
+        self.send_queue.append({'to': msg.get('from', None), 'message_id':  random_id(), \
+                                  'data' : {'type' : 'Notify', 'note' : "Server config has been updated"}})
+        print "Server reconfigured"
 
   def message_callback(self, session, message):
     gcm = message.getTags('gcm')

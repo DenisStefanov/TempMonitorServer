@@ -4,6 +4,7 @@ import time
 import datetime
 import ConfigParser
 from daemon import runner
+import random
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -13,12 +14,17 @@ from GCMXMPPClient import GCMXMPPClient
 LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
 
+def random_id():
+  rid = ''
+  for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
+  return rid
+
 def brew_tempc():
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     BBChart = config.get('Common', 'bbchart')
-    RegID = [config.get('Common', 'regid')]
+    RegID = config.get('Common', 'regid')
     updInterval = int( config.get('Common', 'updateinterval'))
 
     if len(RegID) == 0:
@@ -56,6 +62,7 @@ def brew_tempc():
             abstemp2 = float(config.get('Conf2', 'absolute'))
 
             cur_temp = tempSource.getData()
+            cur_temp = [44.44, 77.77]
             if cur_temp:
                 tempArray1.append(cur_temp[0])
                 tempArray2.append(cur_temp[1])
@@ -86,8 +93,12 @@ def brew_tempc():
                         lastAlarm = now
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                    gcm.send(msgType, "%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]), RegID)
-
+                    gcm.send({'to': RegID, 'message_id': random_id(), \
+                                  'data' : 
+                              {'type': 'upd', \
+                                   'time' : time.asctime(), \
+                                   'tempStill' : cur_temp[0], \
+                                   'tempTower' : cur_temp[1]}})
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
