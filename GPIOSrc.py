@@ -31,7 +31,6 @@ class GPIOSrc(object):
                     temp_c = float(temp_string) / 1000.0
                     temp_f = temp_c * 9.0 / 5.0 + 32.0
                     cur_temp.append(temp_c)
-            print cur_temp
             return cur_temp
         except Exception, e:
             print("Exception is caught [%s]" % (e))

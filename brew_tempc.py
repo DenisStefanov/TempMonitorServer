@@ -4,7 +4,7 @@ import time
 import datetime
 import ConfigParser
 from daemon import runner
-import random
+import random, string
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -41,7 +41,6 @@ def brew_tempc():
         print "Wrong sensor type configured"
         exit()
 
-    #gcm = GCMClient()
     gcm = GCMXMPPClient()
 
     tempArray1 = []
@@ -62,17 +61,15 @@ def brew_tempc():
             abstemp2 = float(config.get('Conf2', 'absolute'))
 
             cur_temp = tempSource.getData()
-            cur_temp = [44.44, 77.77]
+            #cur_temp = [44.44, 77.77]
             if cur_temp:
                 tempArray1.append(cur_temp[0])
                 tempArray2.append(cur_temp[1])
                 average1 = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])
                 average2 = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
 
-                print "Average = ", average1, average2
-
                 now = time.asctime()
-                print now, cur_temp
+                print now, "Current=", cur_temp, "Average=", average1, average2, "Limits=", abstemp1, abstemp2
 
                 fd = open(LogFileName,'a')
                 fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
@@ -94,18 +91,15 @@ def brew_tempc():
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                     gcm.send({'to': RegID, 'message_id': random_id(), \
-                                  'data' : 
-                              {'type': 'upd', \
+                                  'data' : {'type': msgType, \
                                    'time' : time.asctime(), \
                                    'tempStill' : cur_temp[0], \
                                    'tempTower' : cur_temp[1]}})
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
-            print "================================================="
         
-        gcm.process()                
-        gcm.flush_queued_messages()
+        gcm.client.Process(1)                
         sys.stdout.flush()
         time.sleep(updInterval)
 
