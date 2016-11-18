@@ -29,7 +29,7 @@ class GCMXMPPClient(object):
   def connect(self):
     self.client = xmpp.Client('gcm.googleapis.com', debug=[])
     self.client.connect(server=(SERVER,PORT), secure=1, use_srv=False)
-    self.serverRunning = True
+    self.serverRunning = False
     auth = self.client.auth(USERNAME, PASSWORD)
     if not auth:
       print 'Authentication failed!'
@@ -67,20 +67,22 @@ class GCMXMPPClient(object):
         config.read(CONFIG_FILE)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'ServerConfig', \
-                                   'Config' : 'Conf1,' + config.get('Conf1', 'fixtemp') + "," + \
-                                              config.get('Conf1', 'absolute') + ";" + 
-                                            'Conf2,' + config.get('Conf2', 'fixtemp') + "," + \
-                                              config.get('Conf2', 'absolute')}})
+                                   'stillTemp'   : config.get('ServerConfig', 'absoluteStill'), \
+                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
+                                   'towerTemp'   : config.get('ServerConfig', 'absoluteTower'), \
+                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}}) 
+
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
         print "Server config sent to Client"
 
-      if data.get('message_type', None) == 'ReconfigServer':
+      if data.get('message_type', None) == 'ServerConfig':
         config = ConfigParser.RawConfigParser()
         config.read(CONFIG_FILE)
         for key, value in data.items():
-          if key != 'message_type':
-            config.set(key, value.split(",")[0], value.split(",")[1])
+          if (key != "message_type"):
+            config.set(data.get('message_type', None), key, value)
+            print "set " + data.get('message_type', None) , key, value
         with open(CONFIG_FILE, 'wb') as configfile:
           config.write(configfile)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \

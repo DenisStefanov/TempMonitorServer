@@ -53,15 +53,15 @@ def brew_tempc():
             AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
             LogFileName = config.get('Common', 'logfilename')
             GCMSend = config.get('Common', 'gcmsend')
-            fixit1 = config.get('Conf1', 'fixtemp')
-            delta1 = float(config.get('Conf1', 'delta'))
-            abstemp1 = float(config.get('Conf1', 'absolute'))
-            fixit2 = config.get('Conf2', 'fixtemp')
-            delta2 = float(config.get('Conf2', 'delta'))
-            abstemp2 = float(config.get('Conf2', 'absolute'))
+            fixitStill = config.get('ServerConfig', 'fixtempStill')
+            deltaStill = float(config.get('ServerConfig', 'deltaStill'))
+            abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
+            fixitTower = config.get('ServerConfig', 'fixtempTower')
+            deltaTower = float(config.get('ServerConfig', 'deltaTower'))
+            abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
 
             cur_temp = tempSource.getData()
-            #cur_temp = [44.44, 77.77]
+            cur_temp = [44.44, 77.77]
             if cur_temp:
                 tempArray1.append(cur_temp[0])
                 tempArray2.append(cur_temp[1])
@@ -69,7 +69,7 @@ def brew_tempc():
                 average2 = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
 
                 now = time.asctime()
-                print now, "Current=", cur_temp, "Average=", average1, average2, "Limits=", abstemp1, abstemp2
+                print now, "Current=",cur_temp,"Average=",average1,average2,"Limits=",abstempStill,abstempTower
 
                 fd = open(LogFileName,'a')
                 fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
@@ -77,13 +77,15 @@ def brew_tempc():
 
                 msgType = "upd"
 
-                if fixit1.lower() == "yes" and (cur_temp[0] > (average1 + delta1) or (cur_temp[0] > abstemp1)):
+                if fixitStill.lower() == "yes" and (cur_temp[0] > (averageStill + deltaStill) or \
+                                                      (cur_temp[0] > abstempStill)):
                     now = datetime.datetime.now()
                     if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
                         msgType = 'alarma'
                         lastAlarm = now 
 
-                if fixit2.lower() == "yes" and (cur_temp[1] > (average2 + delta2) or (cur_temp[1] > abstemp2)):
+                if fixitTower.lower() == "yes" and (cur_temp[1] > (averageTower + delta2) or \
+                                                      (cur_temp[1] > abstempTower)):
                     now = datetime.datetime.now()                    
                     if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
                         msgType = 'alarma'
@@ -92,7 +94,7 @@ def brew_tempc():
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                     gcm.send({'to': RegID, 'message_id': random_id(), \
                                   'data' : {'type': msgType, \
-                                   'time' : time.asctime(), \
+                                   'LastUpdated' : time.asctime(), \
                                    'tempStill' : cur_temp[0], \
                                    'tempTower' : cur_temp[1]}})
             else:
