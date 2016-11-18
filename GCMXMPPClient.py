@@ -67,9 +67,9 @@ class GCMXMPPClient(object):
         config.read(CONFIG_FILE)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'ServerConfig', \
-                                   'stillTemp'   : config.get('ServerConfig', 'absoluteStill'), \
+                                   'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
                                    'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
-                                   'towerTemp'   : config.get('ServerConfig', 'absoluteTower'), \
+                                   'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
                                    'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}}) 
 
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
