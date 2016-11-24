@@ -5,6 +5,7 @@ import datetime
 import ConfigParser
 from daemon import runner
 import random, string
+import urllib2
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -117,6 +118,18 @@ class MyDaemon():
         brew_tempc()
 
 if __name__ == "__main__":
-    app = MyDaemon()
-    daemon_runner = runner.DaemonRunner(app)
-    daemon_runner.do_action()
+
+  connected = False
+  while (not connected):
+    try:
+      urllib2.urlopen('http://google.com', timeout=5)
+      connected = True
+    except:
+      time.sleep(1)
+
+  app = MyDaemon()
+  daemon_runner = runner.DaemonRunner(app)
+  daemon_runner.do_action()
+
+
+

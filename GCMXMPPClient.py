@@ -1,6 +1,7 @@
 import os
 import sys, json, xmpp, random, string
 import ConfigParser
+import time
 
 SERVER = 'gcm-xmpp.googleapis.com'
 PORT = 5235
@@ -27,10 +28,11 @@ class GCMXMPPClient(object):
     self.client.RegisterDisconnectHandler(self.disconnectHandler)
 
   def connect(self):
+    self.serverRunning = False
     self.client = xmpp.Client('gcm.googleapis.com', debug=[])
     self.client.connect(server=(SERVER,PORT), secure=1, use_srv=False)
-    self.serverRunning = False
     auth = self.client.auth(USERNAME, PASSWORD)
+    
     if not auth:
       print 'Authentication failed!'
       sys.exit(1)
