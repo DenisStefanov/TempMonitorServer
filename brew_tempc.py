@@ -94,7 +94,7 @@ def brew_tempc():
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                     gcm.send({'to': RegID, 'message_id': random_id(), \
-                                'collapse_key' : msgType, \
+                               # 'collapse_key' : msgType, \
                                   'data' : {'type': msgType, \
                                    'LastUpdated' : time.asctime(), \
                                    'tempStill' : cur_temp[0], \
