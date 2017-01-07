@@ -6,6 +6,10 @@ class PowerControl():
         self.value_file = "/sys/class/gpio/gpio%s/value" % (self.cfg.get("num"))
 
     def PowerCtl(self, state):
+
+        if state == None:
+            return
+        
         try:
             fd = open(self.export_file,'w')
             fd.write(self.cfg.get("num"))
@@ -26,3 +30,5 @@ class PowerControl():
             fd.close()
         except Exception, e:
             print e
+
+        return "Ok"
