@@ -65,6 +65,15 @@ class GCMXMPPClient(object):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
 
+      if data.get('message_type', None) == 'ReadActuals':
+        for gpio in ("17", "18", "27", "22"):
+          pc = PowerControl(gpio, "out")
+          state=pc.PowerRead()
+          if (state):
+            self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+                         'data' : {'type' : 'Notify', 'GPIO' : gpio, \
+                                     'State' : "On" if state.rstrip()=="0" else "Off", \
+                                     'note' : "GPIO Actuals received"}})
 
       if data.get('message_type', None) == 'StopServer':
         self.serverRunning = False

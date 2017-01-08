@@ -5,17 +5,17 @@ class PowerControl():
         self.dir_file = "/sys/class/gpio/gpio%s/direction" % (self.cfg.get("num"))
         self.value_file = "/sys/class/gpio/gpio%s/value" % (self.cfg.get("num"))
 
-    def PowerCtl(self, state):
-
-        if state == None:
-            return
-        
         try:
             fd = open(self.export_file,'w')
             fd.write(self.cfg.get("num"))
             fd.close()
         except Exception, e:
             print e
+
+    def PowerCtl(self, state):
+
+        if state == None:
+            return
 
         try:
             fd = open(self.dir_file,'w')
@@ -32,3 +32,14 @@ class PowerControl():
             print e
 
         return "Ok"
+
+    def PowerRead(self):
+        try:
+            fd = open(self.value_file,'r')
+            state = fd.read()
+            fd.close()
+        except Exception, e:
+            print e
+            return
+
+        return state
