@@ -9,8 +9,8 @@ class PowerControl():
             fd = open(self.export_file,'w')
             fd.write(self.cfg.get("num"))
             fd.close()
-        except Exception, e:
-            print e
+        except IOError, e:
+            pass
 
     def PowerCtl(self, state):
 
