@@ -1,11 +1,13 @@
 import sys
 import os
+import json
 import time
 import datetime
 import ConfigParser
 from daemon import runner
 import random, string
 import urllib2
+import sqlite3
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -16,9 +18,9 @@ LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
 
 def random_id():
-  rid = ''
-  for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
-  return rid
+    rid = ''
+    for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
+    return rid
 
 def brew_tempc():
     config = ConfigParser.ConfigParser()
@@ -27,6 +29,10 @@ def brew_tempc():
     BBChart = config.get('Common', 'bbchart')
     RegID = config.get('Common', 'regid')
     updInterval = int( config.get('Common', 'updateinterval'))
+    db = config.get('Common', 'DBPath')
+
+    dbconn = sqlite3.connect(db)
+    dbcursor = dbconn.cursor()
 
     if len(RegID) == 0:
         print "GCM Reg ID not found"
@@ -42,68 +48,33 @@ def brew_tempc():
         print "Wrong sensor type configured"
         exit()
 
-    gcm = GCMXMPPClient()
+    gcm = GCMClient()
 
-    tempArray1 = []
-    tempArray2 = []
-    
+    serverRunning = False
+
     while True:
-        if gcm.serverRunning:
-            config.read(CONFIG_FILE)
-            AlmSuppressInerval = int( config.get('Common', 'alarmfreq'))
-            AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
-            LogFileName = config.get('Common', 'logfilename')
-            GCMSend = config.get('Common', 'gcmsend')
-            fixitStill = config.get('ServerConfig', 'fixtempStill')
-            deltaStill = float(config.get('ServerConfig', 'deltaStill'))
-            abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
-            fixitTower = config.get('ServerConfig', 'fixtempTower')
-            deltaTower = float(config.get('ServerConfig', 'deltaTower'))
-            abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
-
+        if serverRunning:
             cur_temp = tempSource.getData()
-            #cur_temp = [44.44, 77.77]
+            cur_temp = [44.44, 77.77]
             if cur_temp:
-                tempArray1.append(cur_temp[0])
-                tempArray2.append(cur_temp[1])
-                averageStill = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])
-                averageTower = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
+                now = datetime.datetime.now()                    
 
-                now = time.asctime()
-                print now, "Current=",cur_temp,"Average=",averageStill,averageTower, \
-                    "Limits=",abstempStill,abstempTower
-                fd = open(LogFileName,'a')
-                fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
-                fd.close()
+                dbcursor.execute("SELECT stillTemp, towerTemp, stillTempFix, towerTempFix FROM TempMonitorServer_limits")
+                (abstempStill, abstempTower, fixitStill, fixitTower) =  dbcursor.fetchone()
+                 
+                dbcursor.execute("INSERT INTO TempMonitorServer_readings(datetime, stillTemp, towerTemp) VALUES (?, ?, ?)", [now, cur_temp[0], cur_temp[1]])
+                dbconn.commit()
 
-                msgType = "upd"
+                print now, "Current=",cur_temp, "Limits=",abstempStill,abstempTower
 
-                if fixitStill.lower() == "true" and (cur_temp[0] > (averageStill + deltaStill) or \
-                                                      (cur_temp[0] > abstempStill)):
-                    now = datetime.datetime.now()
-                    if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                        msgType = 'alarma'
-                        lastAlarm = now 
+                if (fixitStill and cur_temp[0] > abstempStill) or (fixitTower and cur_temp[1] > abstempTower):
+                    gcm.send("alarma", "someshit", [RegID])
 
-                if fixitTower.lower() == "true" and (cur_temp[1] > (averageTower + deltaTower) or \
-                                                      (cur_temp[1] > abstempTower)):
-                    now = datetime.datetime.now()                    
-                    if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                        msgType = 'alarma'
-                        lastAlarm = now
-
-                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                    gcm.send({'to': RegID, 'message_id': random_id(), \
-                               # 'collapse_key' : msgType, \
-                                  'data' : {'type': msgType, \
-                                   'LastUpdated' : time.asctime(), \
-                                   'tempStill' : cur_temp[0], \
-                                   'tempTower' : cur_temp[1]}})
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
-        
-        gcm.client.Process(1)                
+        dbcursor.execute("SELECT serverRunning FROM TempMonitorServer_config")
+        serverRunning = dbcursor.fetchone()[0]
         sys.stdout.flush()
         time.sleep(updInterval)
 
@@ -118,6 +89,20 @@ class MyDaemon():
         brew_tempc()
 
 if __name__ == "__main__":
+  
+  if len(sys.argv) > 2 and sys.argv[2]=="cleandb":
+    print "cleaning readings from DB, Are you sure?"
+    if (raw_input().lower() =="y"):
+      config = ConfigParser.ConfigParser()
+      config.read(CONFIG_FILE)
+      db = config.get('Common', 'DBPath')
+      dbconn = sqlite3.connect(db)
+      dbcursor = dbconn.cursor()
+      dbcursor.execute("DELETE FROM TempMonitorServer_readings")
+      dbcursor.execute("VACUUM")
+      dbconn.commit()
+      dbconn.close()
+      
 
   connected = False
   while (not connected):

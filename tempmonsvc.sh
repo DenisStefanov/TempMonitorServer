@@ -17,11 +17,11 @@ case "$1" in
   start)
     echo "Starting TempMonitorServer"
     cd /home/pi/
-    python /home/pi/TempMonitorServer/brew_tempc.py start 
+    python /home/pi/TempMonitorServer/brew_tempc.py start $2 
     ;;
   stop)
     echo "Stopping TempMonitorServer"
-    python /home/pi/TempMonitorServer/brew_tempc.py stop
+    python /home/pi/TempMonitorServer/brew_tempc.py stop $2
     ;;
   *)
     echo "Usage: /etc/init.d/tempmonsvc {start|stop}"
