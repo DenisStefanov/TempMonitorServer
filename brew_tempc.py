@@ -26,20 +26,13 @@ def brew_tempc():
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
-    BBChart = config.get('Common', 'bbchart')
-    RegID = config.get('Common', 'regid')
     updInterval = int( config.get('Common', 'updateinterval'))
     db = config.get('Common', 'DBPath')
 
     dbconn = sqlite3.connect(db)
     dbcursor = dbconn.cursor()
+    RegID = None
 
-    if len(RegID) == 0:
-        print "GCM Reg ID not found"
-        exit()
-
-    lastAlarm = None
-    
     if tempSource == 'gpio':
         tempSource = GPIOSrc()
     elif tempSource == 'usb':
@@ -55,7 +48,7 @@ def brew_tempc():
     while True:
         if serverRunning:
             cur_temp = tempSource.getData()
-            cur_temp = [44.44, 77.77]
+            #cur_temp = [44.44, 77.77]
             if cur_temp:
                 now = datetime.datetime.now()                    
 
@@ -67,14 +60,17 @@ def brew_tempc():
 
                 print now, "Current=",cur_temp, "Limits=",abstempStill,abstempTower
 
-                if (fixitStill and cur_temp[0] > abstempStill) or (fixitTower and cur_temp[1] > abstempTower):
-                    gcm.send("alarma", "someshit", [RegID])
+                if RegID:
+                    if (fixitStill and cur_temp[0] > abstempStill) or (fixitTower and cur_temp[1] > abstempTower):
+                        gcm.send("alarma", "someshit", [RegID])
+                else:
+                    print "No Reg ID configured. No GCM."
 
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
-        dbcursor.execute("SELECT serverRunning FROM TempMonitorServer_config")
-        serverRunning = dbcursor.fetchone()[0]
+        dbcursor.execute("SELECT serverRunning, regID FROM TempMonitorServer_config")
+        (serverRunning, RegID) = dbcursor.fetchone()
         sys.stdout.flush()
         time.sleep(updInterval)
 
