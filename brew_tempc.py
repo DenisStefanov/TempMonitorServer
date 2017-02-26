@@ -12,7 +12,6 @@ import sqlite3
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from GCMClient import GCMClient
-from GCMXMPPClient import GCMXMPPClient
 
 LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
 CONFIG_FILE = LOCAL_PATH + '/config.cfg'
