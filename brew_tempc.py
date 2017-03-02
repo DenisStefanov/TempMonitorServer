@@ -5,7 +5,6 @@ import datetime
 import ConfigParser
 from daemon import runner
 import random, string
-import urllib2
 
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
@@ -61,8 +60,8 @@ def brew_tempc():
             deltaTower = float(config.get('ServerConfig', 'deltaTower'))
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
 
-            cur_temp = tempSource.getData()
-            #cur_temp = [44.44, 77.77]
+            res = tempSource.getData()
+            cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
             if cur_temp:
                 tempArray1.append(cur_temp[0])
                 tempArray2.append(cur_temp[1])
@@ -118,14 +117,6 @@ class MyDaemon():
         brew_tempc()
 
 if __name__ == "__main__":
-
-  connected = False
-  while (not connected):
-    try:
-      urllib2.urlopen('http://google.com', timeout=5)
-      connected = True
-    except:
-      time.sleep(1)
 
   app = MyDaemon()
   daemon_runner = runner.DaemonRunner(app)

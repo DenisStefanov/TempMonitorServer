@@ -2,6 +2,7 @@ import os
 import sys, json, xmpp, random, string
 import ConfigParser
 import time
+import urllib2
 from PowerControl import PowerControl
 
 SERVER = 'gcm-xmpp.googleapis.com'
@@ -24,12 +25,25 @@ def reconfigRegId(regid):
 
 class GCMXMPPClient(object):
   def __init__(self):
+    self.serverRunning = False
     self.connect()
     self.client.RegisterHandler('message', self.message_callback)
     self.client.RegisterDisconnectHandler(self.disconnectHandler)
 
   def connect(self):
-    self.serverRunning = False
+    url = 'http://ya.ru'
+    connected = False
+    while (not connected):
+      try:
+        print "trying %s" % (url)
+        urllib2.urlopen(url, timeout=5)
+        connected = True
+      except Exception, e:
+        print e
+        time.sleep(1)
+      finally:
+        sys.stdout.flush()
+
     self.client = xmpp.Client('gcm.googleapis.com', debug=[])
     self.client.connect(server=(SERVER,PORT), secure=1, use_srv=False)
     auth = self.client.auth(USERNAME, PASSWORD)
@@ -99,7 +113,13 @@ class GCMXMPPClient(object):
 
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
-        print "Server config sent to Client"
+        print "Server config sent to Client - "
+        print {'type' : 'ServerConfig', \
+                                   'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
+                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
+                                   'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
+                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}
+
 
       if data.get('message_type', None) == 'ServerConfig':
         config = ConfigParser.RawConfigParser()
