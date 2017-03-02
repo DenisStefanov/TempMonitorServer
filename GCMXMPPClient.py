@@ -5,7 +5,7 @@ import time
 import urllib2
 from PowerControl import PowerControl
 
-SERVER = 'gcm-xmpp.googleapis.com'
+SERVER = 'fcm-xmpp.googleapis.com'
 PORT = 5235
 USERNAME = "620914624750"
 PASSWORD = "AIzaSyBZB1eMgM0V1P1wWtts4O2m3Q2d81267A0"

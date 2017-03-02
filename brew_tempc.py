@@ -23,7 +23,6 @@ def brew_tempc():
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
-    BBChart = config.get('Common', 'bbchart')
     RegID = config.get('Common', 'regid')
     updInterval = int( config.get('Common', 'updateinterval'))
 
@@ -49,51 +48,27 @@ def brew_tempc():
     while True:
         if gcm.serverRunning:
             config.read(CONFIG_FILE)
-            AlmSuppressInerval = int( config.get('Common', 'alarmfreq'))
-            AvgSamplesNum = int( config.get('Common', 'avgsamplesnum'))
-            LogFileName = config.get('Common', 'logfilename')
             GCMSend = config.get('Common', 'gcmsend')
             fixitStill = config.get('ServerConfig', 'fixtempStill')
-            deltaStill = float(config.get('ServerConfig', 'deltaStill'))
             abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
             fixitTower = config.get('ServerConfig', 'fixtempTower')
-            deltaTower = float(config.get('ServerConfig', 'deltaTower'))
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
 
             res = tempSource.getData()
             cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
             if cur_temp:
-                tempArray1.append(cur_temp[0])
-                tempArray2.append(cur_temp[1])
-                averageStill = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])
-                averageTower = sum(tempArray2[0 - AvgSamplesNum:]) / len(tempArray2[0 - AvgSamplesNum:])
-
                 now = time.asctime()
-                print now, "Current=",cur_temp,"Average=",averageStill,averageTower, \
-                    "Limits=",abstempStill,abstempTower
-                fd = open(LogFileName,'a')
-                fd.write("%s,%s,%s\n" % (time.asctime(), cur_temp[0], cur_temp[1]))
-                fd.close()
+                print now, "Current=",cur_temp, "Limits=",abstempStill,abstempTower
 
                 msgType = "upd"
 
-                if fixitStill.lower() == "true" and (cur_temp[0] > (averageStill + deltaStill) or \
-                                                      (cur_temp[0] > abstempStill)):
-                    now = datetime.datetime.now()
-                    if not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                        msgType = 'alarma'
-                        lastAlarm = now 
-
-                if fixitTower.lower() == "true" and (cur_temp[1] > (averageTower + deltaTower) or \
-                                                      (cur_temp[1] > abstempTower)):
-                    now = datetime.datetime.now()                    
-                    if  not lastAlarm or (now - lastAlarm).total_seconds() > AlmSuppressInerval:
-                        msgType = 'alarma'
-                        lastAlarm = now
+                if (fixitStill.lower() == "true" and cur_temp[0] > abstempStill) or \
+                      (fixitTower.lower() == "true" and cur_temp[1] > abstempTower):
+                    msgType = 'alarma'
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                     gcm.send({'to': RegID, 'message_id': random_id(), \
-                               # 'collapse_key' : msgType, \
+                                # 'collapse_key' : msgType, \
                                   'data' : {'type': msgType, \
                                    'LastUpdated' : time.asctime(), \
                                    'tempStill' : cur_temp[0], \
