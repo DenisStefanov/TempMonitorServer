@@ -62,7 +62,7 @@ def brew_tempc():
 
             res = tempSource.getData()
             cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
-            if cur_temp:
+            if cur_temp != [-1, -1]:
                 tempArray1.append(cur_temp[0])
                 tempArray2.append(cur_temp[1])
                 averageStill = sum(tempArray1[0 - AvgSamplesNum:]) / len(tempArray1[0 - AvgSamplesNum:])

@@ -4,11 +4,8 @@ import ConfigParser
 import time
 import urllib2
 from PowerControl import PowerControl
+import DropboxHandler
 
-SERVER = 'gcm-xmpp.googleapis.com'
-PORT = 5235
-USERNAME = "620914624750"
-PASSWORD = "AIzaSyBZB1eMgM0V1P1wWtts4O2m3Q2d81267A0"
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 
 def random_id():
@@ -30,6 +27,15 @@ class GCMXMPPClient(object):
     self.client.RegisterHandler('message', self.message_callback)
     self.client.RegisterDisconnectHandler(self.disconnectHandler)
 
+    config = ConfigParser.RawConfigParser()
+    config.read(CONFIG_FILE)
+    self.access_token = config.get('DropboxClient', 'DBXAccessToken')
+    self.server = config.get('GCMXMPPServer', 'server')
+    self.port = config.get('GCMXMPPServer', 'port')
+    self.username = config.get('GCMXMPPServer', 'username')
+    self.password = config.get('GCMXMPPServer', 'password')
+    self.client_url = config.get('GCMXMPPClient', 'client')
+
   def connect(self):
     url = 'http://ya.ru'
     connected = False
@@ -44,9 +50,9 @@ class GCMXMPPClient(object):
       finally:
         sys.stdout.flush()
 
-    self.client = xmpp.Client('gcm.googleapis.com', debug=[])
-    self.client.connect(server=(SERVER,PORT), secure=1, use_srv=False)
-    auth = self.client.auth(USERNAME, PASSWORD)
+    self.client = xmpp.Client(self.client_url, debug=[])
+    self.client.connect(server=(self.server,self.port), secure=1, use_srv=False)
+    auth = self.client.auth(self.username, self.password)
     
     if not auth:
       print 'Authentication failed!'
@@ -59,6 +65,12 @@ class GCMXMPPClient(object):
   def processData(self, msg):
     data = msg.get('data', None)
     if data:
+      if data.get('message_type', None) == 'GetPicture':
+        dbx = DropboxHandler.TransferData(self.access_token)
+        dbx.upload_file("test.txt", "/test.txt")
+        self.send({'to': msg.get('from', None), 'message_id': random_id(), \
+                     'data' : {'type' : 'GetPicture', 'note' : "/test.txt"}})
+
       if data.get('message_type', None) == 'StoreRegid':
         regid = msg.get('from', None)
         if regid:
