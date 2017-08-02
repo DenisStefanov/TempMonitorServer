@@ -22,11 +22,6 @@ def reconfigRegId(regid):
 
 class GCMXMPPClient(object):
   def __init__(self):
-    self.serverRunning = False
-    self.connect()
-    self.client.RegisterHandler('message', self.message_callback)
-    self.client.RegisterDisconnectHandler(self.disconnectHandler)
-
     config = ConfigParser.RawConfigParser()
     config.read(CONFIG_FILE)
     self.access_token = config.get('DropboxClient', 'DBXAccessToken')
@@ -35,6 +30,11 @@ class GCMXMPPClient(object):
     self.username = config.get('GCMXMPPServer', 'username')
     self.password = config.get('GCMXMPPServer', 'password')
     self.client_url = config.get('GCMXMPPClient', 'client')
+    self.serverRunning = False
+
+    self.connect()
+    self.client.RegisterHandler('message', self.message_callback)
+    self.client.RegisterDisconnectHandler(self.disconnectHandler)
 
   def connect(self):
     url = 'http://ya.ru'

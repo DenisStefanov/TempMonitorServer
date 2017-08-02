@@ -1,3 +1,4 @@
+import os
 import dropbox
 import ConfigParser
 

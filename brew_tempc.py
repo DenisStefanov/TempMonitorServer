@@ -11,8 +11,7 @@ from DGTSrc import DGTSrc
 from GCMClient import GCMClient
 from GCMXMPPClient import GCMXMPPClient
 
-LOCAL_PATH = os.getcwd() + "/TempMonitorServer"
-CONFIG_FILE = LOCAL_PATH + '/config.cfg'
+CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
 def random_id():
   rid = ''
