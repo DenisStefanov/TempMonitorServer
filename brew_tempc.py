@@ -42,9 +42,9 @@ def brew_tempc():
 
     gcm = GCMXMPPClient()
 
-    tempArray1 = []
-    tempArray2 = []
-    
+    stillTempList = []
+    towerTempList = []
+
     while True:
         if gcm.serverRunning:
             config.read(CONFIG_FILE)
@@ -57,22 +57,42 @@ def brew_tempc():
             res = tempSource.getData()
             cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
             if cur_temp:
+
+                stillTempList.append(cur_temp[0])
+                towerTempList.append(cur_temp[1])
+
+                if len(stillTempList) >= 10:
+                  stillTempList.pop(0)
+
+                if len(towerTempList) >= 10:
+                  towerTempList.pop(0)
+
+                stillTempAvg = round(sum(stillTempList) / len(stillTempList), 2)
+                towerTempAvg = round(sum(towerTempList) / len(towerTempList), 2)
+
                 now = time.asctime()
-                print now, "Current=",cur_temp, "Limits=",abstempStill,abstempTower
+                print now, "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower
 
                 msgType = "upd"
 
-                if (fixitStill.lower() == "true" and cur_temp[0] > abstempStill) or \
-                      (fixitTower.lower() == "true" and cur_temp[1] > abstempTower):
-                    msgType = 'alarma'
+                diff = 0.1
+
+                if (fixitStill.lower() == "true" and cur_temp[0] > stillTempAvg + diff ) or \
+                      (fixitTower.lower() == "true" and cur_temp[1] > towerTempAvg + diff):
+                  msgType = 'alarma'
+
+
+#                if (fixitStill.lower() == "true" and cur_temp[0] > abstempStill) or \
+#                      (fixitTower.lower() == "true" and cur_temp[1] > abstempTower):
+#                    msgType = 'alarma'
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                    gcm.send({'to': RegID, 'message_id': random_id(), \
-                                # 'collapse_key' : msgType, \
-                                  'data' : {'type': msgType, \
-                                   'LastUpdated' : time.asctime(), \
-                                   'tempStill' : cur_temp[0], \
-                                   'tempTower' : cur_temp[1]}})
+                  gcm.send({'to': RegID, 'message_id': random_id(), \
+                              # 'collapse_key' : msgType, \
+                              'data' : {'type': msgType, \
+                                          'LastUpdated' : time.asctime(), \
+                                          'tempStill' : cur_temp[0], \
+                                          'tempTower' : cur_temp[1]}})
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 

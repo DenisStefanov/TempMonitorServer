@@ -38,6 +38,7 @@ class GCMXMPPClient(object):
         print "trying %s" % (url)
         urllib2.urlopen(url, timeout=5)
         connected = True
+        print "Connected."
       except Exception, e:
         print e
         time.sleep(1)
@@ -59,6 +60,10 @@ class GCMXMPPClient(object):
   def processData(self, msg):
     data = msg.get('data', None)
     if data:
+      if data.get('message_type', None) == 'GetPicture':
+          self.send({'to': msg.get('from', None), 'message_id': random_id(), \
+                       'data' : {'type' : 'PictureURL', 'note' : "http://"}})
+
       if data.get('message_type', None) == 'StoreRegid':
         regid = msg.get('from', None)
         if regid:
