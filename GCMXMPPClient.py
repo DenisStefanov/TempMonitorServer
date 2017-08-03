@@ -50,7 +50,7 @@ class GCMXMPPClient(object):
         time.sleep(1)
       finally:
         sys.stdout.flush()
-
+        
     self.client = xmpp.Client(self.client_url, debug=[])
     self.client.connect(server=(self.server,self.port), secure=1, use_srv=False)
     auth = self.client.auth(self.username, self.password)

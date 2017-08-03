@@ -50,8 +50,10 @@ def brew_tempc():
             GCMSend = config.get('Common', 'gcmsend')
             fixitStill = config.get('ServerConfig', 'fixtempStill')
             abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
+            deltaStill = config.get('ServerConfig', 'deltastill')
             fixitTower = config.get('ServerConfig', 'fixtempTower')
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
+            deltaTower = config.get('ServerConfig', 'deltatower')
 
             res = tempSource.getData()
             cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
@@ -73,17 +75,10 @@ def brew_tempc():
                 print now, "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower
 
                 msgType = "upd"
-
-                diff = 0.1
-
-                if (fixitStill.lower() == "true" and cur_temp[0] > stillTempAvg + diff ) or \
-                      (fixitTower.lower() == "true" and cur_temp[1] > towerTempAvg + diff):
+                
+                if ((fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)) or
+                    (fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower))):
                   msgType = 'alarma'
-
-
-#                if (fixitStill.lower() == "true" and cur_temp[0] > abstempStill) or \
-#                      (fixitTower.lower() == "true" and cur_temp[1] > abstempTower):
-#                    msgType = 'alarma'
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                   gcm.send({'to': RegID, 'message_id': random_id(), \
