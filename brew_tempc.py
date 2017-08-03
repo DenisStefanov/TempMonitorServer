@@ -50,10 +50,10 @@ def brew_tempc():
             GCMSend = config.get('Common', 'gcmsend')
             fixitStill = config.get('ServerConfig', 'fixtempStill')
             abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
-            deltaStill = config.get('ServerConfig', 'deltastill')
+            deltaStill = float(config.get('ServerConfig', 'deltastill'))
             fixitTower = config.get('ServerConfig', 'fixtempTower')
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
-            deltaTower = config.get('ServerConfig', 'deltatower')
+            deltaTower = float(config.get('ServerConfig', 'deltatower'))
 
             res = tempSource.getData()
             cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
