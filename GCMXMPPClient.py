@@ -5,6 +5,7 @@ import time
 import urllib2
 from PowerControl import PowerControl
 import DropboxHandler
+from WebcamHandler import WebcamHandler
 
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 
@@ -67,10 +68,12 @@ class GCMXMPPClient(object):
     data = msg.get('data', None)
     if data:
       if data.get('message_type', None) == 'GetPicture':
+        wch = WebcamHandler()
+        [path, picture] = wch.CaptureImage()
         dbx = DropboxHandler.TransferData(self.access_token)
-        dbx.upload_file("test.txt", "/test.txt")
+        dbx.upload_file(path + picture, "/%s" % (picture))
         self.send({'to': msg.get('from', None), 'message_id': random_id(), \
-                     'data' : {'type' : 'PictureURL', 'note' : "/test.txt"}})
+                     'data' : {'type' : 'PictureURL', 'note' : picture}})
 
       if data.get('message_type', None) == 'StoreRegid':
         regid = msg.get('from', None)

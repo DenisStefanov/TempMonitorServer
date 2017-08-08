@@ -19,9 +19,9 @@ class TransferData:
 def main():
     config = ConfigParser.RawConfigParser()
     config.read(CONFIG_FILE)
-    self.access_token = config.get('DropboxClient', 'DBXAccessToken')
+    access_token = config.get('DropboxClient', 'dbxaccesstoken')
 
-    transferData = TransferData(self.access_token)
+    transferData = TransferData(access_token)
 
     file_from = 'test.txt'
     file_to = '/test.txt'  # The full path to upload the file to, including the file name
