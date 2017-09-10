@@ -8,7 +8,7 @@ class GPIOSrc(object):
         base_dir = '/sys/bus/w1/devices/'
         device_folders = glob.glob(base_dir + '28*')
     
-        for i, folder in enumerate(device_folders): 
+        for i, folder in reversed(list(enumerate(device_folders))): 
 	    self.device_file.append(folder + '/w1_slave')
     
     def read_temp_raw(self, device_f):
