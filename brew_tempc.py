@@ -10,6 +10,7 @@ from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from GCMClient import GCMClient
 from GCMXMPPClient import GCMXMPPClient
+from PowerControl import PowerControl
 
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
@@ -52,6 +53,7 @@ def brew_tempc():
             abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
             deltaStill = float(config.get('ServerConfig', 'deltastill'))
             fixitTower = config.get('ServerConfig', 'fixtempTower')
+	    fixitTowerByPower = config.get('ServerConfig', 'fixtemptowerbypower')
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
             deltaTower = float(config.get('ServerConfig', 'deltatower'))
 
@@ -78,8 +80,17 @@ def brew_tempc():
                 
                 if ((fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)) or
                     (fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower))):
-                  msgType = 'alarma'
+                
+		  if (fixitTowerByPower.lower() == "true")
+	            pc = PowerControl("17", "out")
+                    pc.PowerCtl("1")
+		  else:
+		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
+                else:		
+		  if (fixitTowerByPower.lower() == "true")
+	            pc = PowerControl("17", "out")
+                    pc.PowerCtl("0")
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                   gcm.send({'to': RegID, 'message_id': random_id(), \
