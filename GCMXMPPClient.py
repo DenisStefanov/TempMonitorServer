@@ -31,7 +31,7 @@ class GCMXMPPClient(object):
     self.username = config.get('GCMXMPPServer', 'username')
     self.password = config.get('GCMXMPPServer', 'password')
     self.client_url = config.get('GCMXMPPClient', 'client')
-    self.serverRunning = False
+    self.serverRunning = True
 
     self.connect()
     self.client.RegisterHandler('message', self.message_callback)
@@ -55,14 +55,15 @@ class GCMXMPPClient(object):
     self.client = xmpp.Client(self.client_url, debug=[])
     self.client.connect(server=(self.server,self.port), secure=1, use_srv=False)
     auth = self.client.auth(self.username, self.password)
-    
+        
     if not auth:
       print 'Authentication failed!'
       sys.exit(1)
     
   def disconnectHandler(self):
-    print "DISCONNECTED, Reconnecting"
-    self.connect()
+    print "DISCONNECTED, NOT Reconnecting"
+    exit()
+    #self.connect()
 
   def processData(self, msg):
     data = msg.get('data', None)
