@@ -31,7 +31,7 @@ class GCMXMPPClient(object):
     self.username = config.get('GCMXMPPServer', 'username')
     self.password = config.get('GCMXMPPServer', 'password')
     self.client_url = config.get('GCMXMPPClient', 'client')
-    self.serverRunning = False
+    self.serverRunning = True
 
     self.connect()
     self.client.RegisterHandler('message', self.message_callback)
