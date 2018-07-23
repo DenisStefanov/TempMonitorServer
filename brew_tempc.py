@@ -81,14 +81,14 @@ def brew_tempc():
                 if ((fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)) or
                     (fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower))):
                 
-		  if (fixitTowerByPower.lower() == "true")
+		  if (fixitTowerByPower.lower() == "true"):
 	            pc = PowerControl("17", "out")
                     pc.PowerCtl("1")
 		  else:
 		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
                 else:		
-		  if (fixitTowerByPower.lower() == "true")
+		  if (fixitTowerByPower.lower() == "true"):
 	            pc = PowerControl("17", "out")
                     pc.PowerCtl("0")
 
