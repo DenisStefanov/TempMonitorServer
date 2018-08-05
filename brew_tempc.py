@@ -92,13 +92,20 @@ def brew_tempc():
 	            pc = PowerControl("17", "out")
                     pc.PowerCtl("0")
 
+		pc = PowerControl(23, "in")
+     	     	state=pc.PowerRead()
+		print "Liquid level sensor state " % state
+
+
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                   gcm.send({'to': RegID, 'message_id': random_id(), \
                               # 'collapse_key' : msgType, \
                               'data' : {'type': msgType, \
                                           'LastUpdated' : time.asctime(), \
                                           'tempStill' : cur_temp[0], \
-                                          'tempTower' : cur_temp[1]}})
+                                          'tempTower' : cur_temp[1], \
+					  'liqLevelSensor'  : state }})
+
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
