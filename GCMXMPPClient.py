@@ -53,6 +53,7 @@ class GCMXMPPClient(object):
         sys.stdout.flush()
         
     self.client = xmpp.Client(self.client_url, debug=[])
+    #self.client = xmpp.Client(self.client_url)
     self.client.connect(server=(self.server,self.port), secure=1, use_srv=False)
     auth = self.client.auth(self.username, self.password)
         
@@ -61,12 +62,13 @@ class GCMXMPPClient(object):
       sys.exit(1)
     
   def disconnectHandler(self):
-    print "DISCONNECTED, NOT Reconnecting"
+    print "DISCONNECTED, NOT Reconnecting. In monit we trust"
     exit()
     #self.connect()
 
   def processData(self, msg):
     data = msg.get('data', None)
+    print "received type %s data %s" % (msg.get("message_type", None), data)
     if data:
       if data.get('message_type', None) == 'GetPicture':
         wch = WebcamHandler()
