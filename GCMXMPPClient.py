@@ -68,7 +68,7 @@ class GCMXMPPClient(object):
 
   def processData(self, msg):
     data = msg.get('data', None)
-    print "received type %s data %s" % (msg.get("message_type", None), data)
+    #print "received type %s data %s" % (msg.get("message_type", None), data)
     if data:
       if data.get('message_type', None) == 'GetPicture':
         wch = WebcamHandler()
@@ -87,7 +87,7 @@ class GCMXMPPClient(object):
                        'data' : {'type' : 'Notify', 'note' : "Registration ID has been updated"}})
 
       if data.get('message_type', None) == 'PowerControl':
-        pc = PowerControl(data.get("GPIO", None), "out")
+        pc = PowerControl(int(data.get("GPIO", None)), GPIO.OUT,  GPIO.PUD_OFF)
         if (pc.PowerCtl("0" if data.get("State", None)=="On" else "1")):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                        'data' : {'type' : 'Notify', \
@@ -99,8 +99,8 @@ class GCMXMPPClient(object):
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
 
       if data.get('message_type', None) == 'ReadActuals':
-        for gpio in ("17", "18", "27", "22"):
-          pc = PowerControl(gpio, "out")
+        for gpio in (17, 18, 27, 22):
+          pc = PowerControl(gpio, GPIO.OUT, GPIO.PUD_OFF)
           state=pc.PowerRead()
           if (state):
             self.send({'to': msg.get('from', None), 'message_id':  random_id(), \

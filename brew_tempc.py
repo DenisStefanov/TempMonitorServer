@@ -6,6 +6,7 @@ import ConfigParser
 from daemon import runner
 import random, string
 
+import RPi.GPIO as GPIO
 from GPIOSrc import GPIOSrc
 from DGTSrc import DGTSrc
 from GCMClient import GCMClient
@@ -82,17 +83,17 @@ def brew_tempc():
                     (fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower))):
                 
 		  if (fixitTowerByPower.lower() == "true"):
-	            pc = PowerControl("17", "out")
-                    pc.PowerCtl("1")
+	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
+                    pc.PowerCtl(GPIO.HIGH)
 		  else:
 		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
                 else:		
 		  if (fixitTowerByPower.lower() == "true"):
-	            pc = PowerControl("17", "out")
-                    pc.PowerCtl("0")
+	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
+                    pc.PowerCtl(GPIO.LOW)
 
-		pc = PowerControl("21", "in")
+		pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
      	     	state=pc.PowerRead()
 		print "Liquid level sensor state %s " % state
 
@@ -103,7 +104,7 @@ def brew_tempc():
                                           'LastUpdated' : time.asctime(), \
                                           'tempStill' : cur_temp[0], \
                                           'tempTower' : cur_temp[1], \
-					  'liqLevelSensor'  : state }})
+					  'liqLevelSensor'  :"true" if state== GPIO.HIGH else "false"}})
 
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
