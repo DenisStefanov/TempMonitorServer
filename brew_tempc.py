@@ -92,7 +92,7 @@ def brew_tempc():
 	            pc = PowerControl("17", "out")
                     pc.PowerCtl("0")
 
-		pc = PowerControl(23, "in")
+		pc = PowerControl(21, "in")
      	     	state=pc.PowerRead()
 		print "Liquid level sensor state " % state
 
