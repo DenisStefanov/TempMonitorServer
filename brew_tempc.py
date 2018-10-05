@@ -78,18 +78,19 @@ def brew_tempc():
                 print now, "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower
 
                 msgType = "upd"
-                
-                if ((fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)) or
-                    (fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower))):
-                
-		  if (fixitTowerByPower.lower() == "true"):
+
+                stillAlarm = fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)
+		towerAlarm = fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower)
+
+                if stillAlarm or towerAlarm:
+		  if (towerAlarm and fixitTowerByPower.lower() == "true"):
 	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
                     pc.PowerCtl(GPIO.HIGH)
 		  else:
 		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
-                else:		
-		  if (fixitTowerByPower.lower() == "true"):
+                else:
+		  if (towerAlarm and fixitTowerByPower.lower() == "true"):
 	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
                     pc.PowerCtl(GPIO.LOW)
 
