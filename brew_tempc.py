@@ -45,6 +45,7 @@ def brew_tempc():
 
     stillTempList = []
     towerTempList = []
+    lastLevelAlarm = None
 
     while True:
         if gcm.serverRunning:
@@ -73,10 +74,6 @@ def brew_tempc():
 
                 stillTempAvg = round(sum(stillTempList) / len(stillTempList), 2)
                 towerTempAvg = round(sum(towerTempList) / len(towerTempList), 2)
-
-                now = time.asctime()
-                print now, "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower
-
                 msgType = "upd"
                 
                 if ((fixitStill.lower() == "true" and (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or abstempStill != 0 and cur_temp[0] > abstempStill)) or
@@ -95,7 +92,16 @@ def brew_tempc():
 
 		pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
      	     	state=pc.PowerRead()
-		print "Liquid level sensor state %s " % state
+                now = time.time()
+
+                if state == GPIO.LOW:
+                  lastLevelAlarm = None
+
+                if state == GPIO.HIGH and (not lastLevelAlarm or now - lastLevelAlarm > 10 * 60):
+                  msgType = 'alarma'
+                  lastLevelAlarm = now
+
+                print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
 
                 if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
                   gcm.send({'to': RegID, 'message_id': random_id(), \

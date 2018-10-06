@@ -3,6 +3,7 @@ import sys, json, xmpp, random, string
 import ConfigParser
 import time
 import urllib2
+import RPi.GPIO as GPIO
 from PowerControl import PowerControl
 import DropboxHandler
 from WebcamHandler import WebcamHandler
@@ -68,8 +69,8 @@ class GCMXMPPClient(object):
 
   def processData(self, msg):
     data = msg.get('data', None)
-    #print "received type %s data %s" % (msg.get("message_type", None), data)
     if data:
+      print "Received type %s data %s" % (msg.get("message_type", None), data)
       if data.get('message_type', None) == 'GetPicture':
         wch = WebcamHandler()
         [path, picture] = wch.CaptureImage()
@@ -88,7 +89,7 @@ class GCMXMPPClient(object):
 
       if data.get('message_type', None) == 'PowerControl':
         pc = PowerControl(int(data.get("GPIO", None)), GPIO.OUT,  GPIO.PUD_OFF)
-        if (pc.PowerCtl("0" if data.get("State", None)=="On" else "1")):
+        if (pc.PowerCtl(0 if data.get("State", None)=="On" else 1)):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                        'data' : {'type' : 'Notify', \
                                    'GPIO' : data.get("GPIO", ""), \
@@ -102,11 +103,10 @@ class GCMXMPPClient(object):
         for gpio in (17, 18, 27, 22):
           pc = PowerControl(gpio, GPIO.OUT, GPIO.PUD_OFF)
           state=pc.PowerRead()
-          if (state):
-            self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-                         'data' : {'type' : 'Notify', 'GPIO' : gpio, \
-                                     'State' : "On" if state.rstrip()=="0" else "Off", \
-                                     'note' : "GPIO Actuals received"}})
+          self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+                     'data' : {'type' : 'Notify', 'GPIO' : gpio, \
+                               'State' : "On" if state == GPIO.HIGH else "Off", \
+                               'note' : "GPIO Actuals received"}})
 
       if data.get('message_type', None) == 'StopServer':
         self.serverRunning = False
