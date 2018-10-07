@@ -105,7 +105,7 @@ class GCMXMPPClient(object):
           state=pc.PowerRead()
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                      'data' : {'type' : 'Notify', 'GPIO' : gpio, \
-                               'State' : "On" if state == GPIO.HIGH else "Off", \
+                               'State' : "Off" if state == GPIO.HIGH else "On", \
                                'note' : "GPIO Actuals received"}})
 
       if data.get('message_type', None) == 'StopServer':

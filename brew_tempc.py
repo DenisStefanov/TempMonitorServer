@@ -56,6 +56,7 @@ def brew_tempc():
             deltaStill = float(config.get('ServerConfig', 'deltastill'))
             fixitTower = config.get('ServerConfig', 'fixtempTower')
 	    fixitTowerByPower = config.get('ServerConfig', 'fixtemptowerbypower')
+	    fixitStillByPower = config.get('ServerConfig', 'fixtempstillbypower')
             abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
             deltaTower = float(config.get('ServerConfig', 'deltatower'))
 
@@ -80,16 +81,15 @@ def brew_tempc():
 		towerAlarm = fixitTower.lower() == "true" and (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or abstempTower != 0 and cur_temp[1] > abstempTower)
 
                 if stillAlarm or towerAlarm:
-		  if (towerAlarm and fixitTowerByPower.lower() == "true"):
-	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
+		  if ((towerAlarm and fixitTowerByPower.lower() == "true") or (stillAlarm and fixitStillByPower.lower() == "true")):
+	            pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
                     pc.PowerCtl(GPIO.HIGH)
 		  else:
 		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
                 else:
-		  if (towerAlarm and fixitTowerByPower.lower() == "true"):
-	            pc = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF)
-                    pc.PowerCtl(GPIO.LOW)
+                  pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
+                  pc.PowerCtl(GPIO.LOW)
 
 		pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
      	     	state=pc.PowerRead()
