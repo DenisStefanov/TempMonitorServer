@@ -89,7 +89,7 @@ class GCMXMPPClient(object):
 
       if data.get('message_type', None) == 'PowerControl':
         pc = PowerControl(int(data.get("GPIO", None)), GPIO.OUT,  GPIO.PUD_OFF)
-        if (pc.PowerCtl(0 if data.get("State", None)=="On" else 1)):
+        if (pc.PowerCtl(GPIO.LOW if data.get("State", None)=="On" else GPIO.HIGH)):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                        'data' : {'type' : 'Notify', \
                                    'GPIO' : data.get("GPIO", ""), \
@@ -128,6 +128,8 @@ class GCMXMPPClient(object):
                                    'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
                                    'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
                                    'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
+                                   'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
+                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower'), \
                                    'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}}) 
 
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
@@ -137,7 +139,9 @@ class GCMXMPPClient(object):
                                    'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
                                    'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
                                    'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
-                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}
+                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower'), \
+                                   'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
+                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower)}
 
 
       if data.get('message_type', None) == 'ServerConfig':
