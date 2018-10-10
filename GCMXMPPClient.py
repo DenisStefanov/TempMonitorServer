@@ -125,21 +125,21 @@ class GCMXMPPClient(object):
         config.read(CONFIG_FILE)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'ServerConfig', \
-                                   'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
-                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
-                                   'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
+                                   'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
+                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
+                                   'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
                                    'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
                                    'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower'), \
-                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower')}}) 
+                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower')}}) 
 
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                                   'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
         print "Server config sent to Client - "
         print {'type' : 'ServerConfig', \
-                                   'stillTempThreshold'   : config.get('ServerConfig', 'absoluteStill'), \
-                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempStill'), \
-                                   'towerTempThreshold'   : config.get('ServerConfig', 'absoluteTower'), \
-                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtempTower'), \
+                                   'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
+                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
+                                   'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
+                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
                                    'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
                                    'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower)}
 

@@ -1,6 +1,6 @@
 import sys
 import os
-import time
+import time, threading
 import datetime
 import ConfigParser
 from daemon import runner
@@ -47,6 +47,8 @@ def brew_tempc():
     towerTempList = []
     lastLevelAlarm = None
 
+    threading.Timer(updInterval, sendToClient(True)).start()
+
     while True:
         if gcm.serverRunning:
             config.read(CONFIG_FILE)
@@ -87,7 +89,7 @@ def brew_tempc():
 		  else:
 		    msgType = 'alarma' 
                   print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
-                else:
+                else if ((fixitTowerByPower.lower() == "true") or (fixitStillByPower.lower() == "true")):
                   pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
                   pc.PowerCtl(GPIO.LOW)
 
@@ -104,14 +106,20 @@ def brew_tempc():
 
                 print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
 
-                if GCMSend.lower() == 'yes' or (GCMSend.lower() == 'alarm' and msgType == "alarma"):
-                  gcm.send({'to': RegID, 'message_id': random_id(), \
-#                              'collapse_key' : msgType, \
-                              'data' : {'type': msgType, \
-                                          'LastUpdated' : time.asctime(), \
-                                          'tempStill' : cur_temp[0], \
-                                          'tempTower' : cur_temp[1], \
-					  'liqLevelSensor'  :"true" if state== GPIO.HIGH else "false"}})
+		def sendToClient(reschedule):
+  		  if GCMSend.lower() == 'yes':
+		    gcm.send({'to': RegID, 'message_id': random_id(), \
+	   #        'collapse_key' : msgType, \
+        	    'data' : {'type': msgType, \
+		    'LastUpdated' : time.asctime(), \
+		    'tempStill' : cur_temp[0], \
+	            'tempTower' : cur_temp[1], \
+                    'liqLevelSensor'  :"true" if state== GPIO.HIGH else "false"}})
+		  if reschedule:
+		    threading.Timer(updInterval, sendToClient(True)).start()
+	
+		if ((GCMSend.lower() == 'alarm') and (msgType == "alarma")):
+		  sendToClient(False)
 
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
@@ -119,7 +127,7 @@ def brew_tempc():
         
         gcm.client.Process(1)                
         sys.stdout.flush()
-        time.sleep(updInterval)
+#        time.sleep(updInterval)
 
 class MyDaemon():
     def __init__(self):
@@ -136,6 +144,3 @@ if __name__ == "__main__":
   app = MyDaemon()
   daemon_runner = runner.DaemonRunner(app)
   daemon_runner.do_action()
-
-
-
