@@ -141,7 +141,7 @@ class GCMXMPPClient(object):
                                    'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
                                    'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
                                    'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
-                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower)}
+                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}
 
 
       if data.get('message_type', None) == 'ServerConfig':
