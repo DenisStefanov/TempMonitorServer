@@ -104,7 +104,6 @@ def brew_tempc():
                   lastLevelAlarm = now
 
                 print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
-                print lastMsg, updInterval, now
 		if ((GCMSend.lower() == 'alarm' and msgType == "alarma") \
                     or (GCMSend.lower() == 'yes' and lastMsg and (lastMsg + updInterval < now)) ):
                   gcm.send({'to': RegID, 'message_id': random_id(), \
