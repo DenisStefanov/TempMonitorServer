@@ -46,7 +46,7 @@ def brew_tempc():
     stillTempList = []
     towerTempList = []
     lastLevelAlarm = None
-    lastMsg = time.time()
+    lastMsg = None
     
     while True:
         if gcm.serverRunning:
@@ -87,25 +87,28 @@ def brew_tempc():
                     pc.PowerCtl(GPIO.HIGH)
 		  else:
 		    msgType = 'alarma' 
-                  print "Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
+                  print "Turn OFF Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
                 elif ((fixitTowerByPower.lower() == "true") or (fixitStillByPower.lower() == "true")):
                   pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
                   pc.PowerCtl(GPIO.LOW)
+                  print "Turn ON Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
 
 		pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
      	     	state=pc.PowerRead()
-                now = time.time()
-
                 if state == GPIO.LOW:
                   lastLevelAlarm = None
 
-                if state == GPIO.HIGH and (not lastLevelAlarm or now - lastLevelAlarm > 10 * 60):
+                now = time.time()
+
+                if state == GPIO.HIGH and (not lastLevelAlarm or (lastLevelAlarm + 10 * 60 < now)):
                   msgType = 'alarma'
                   lastLevelAlarm = now
 
                 print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
+
 		if ((GCMSend.lower() == 'alarm' and msgType == "alarma") \
-                    or (GCMSend.lower() == 'yes' and lastMsg and (lastMsg + updInterval < now)) ):
+                    or (GCMSend.lower() == 'yes' and (not lastMsg or (lastMsg + updInterval < now))) ):
+	          print time.asctime(), "Current=", cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=", abstempStill, abstempTower, "LiqLevel=", state
                   gcm.send({'to': RegID, 'message_id': random_id(), \
                             #collapse_key' : msgType, \
                             'data' : {'type': msgType, \
