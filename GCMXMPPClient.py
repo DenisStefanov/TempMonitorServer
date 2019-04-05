@@ -99,12 +99,24 @@ class GCMXMPPClient(object):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
 
+      if data.get('message_type', None) == 'DimmerControl':
+	f= open("/tmp/dimval.txt","w")
+	f.write(data.get("DIMMER", 50))
+	f.close()
+
+      if data.get('message_type', None) == 'ReadDimmer':
+        f= open("/tmp/dimval.txt","r")
+	self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+       	         'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : f.read(), \
+           	 'note' : "DIMMER Actuals received"}})	
+	f.close()
+
       if data.get('message_type', None) == 'ReadActuals':
         for gpio in (17, 18, 27, 22):
           pc = PowerControl(gpio, GPIO.OUT, GPIO.PUD_OFF)
           state=pc.PowerRead()
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-                     'data' : {'type' : 'Notify', 'GPIO' : gpio, \
+                     'data' : {'type' : 'NotifyGPIO', 'GPIO' : gpio, \
                                'State' : "Off" if state == GPIO.HIGH else "On", \
                                'note' : "GPIO Actuals received"}})
 
