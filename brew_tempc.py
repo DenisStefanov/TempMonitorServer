@@ -19,7 +19,7 @@ def random_id():
   rid = ''
   for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
   return rid
-  
+
 def brew_tempc():
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -32,7 +32,7 @@ def brew_tempc():
         exit()
 
     lastAlarm = None
-    
+
     if tempSource == 'gpio':
         tempSource = GPIOSrc()
     elif tempSource == 'usb':
@@ -47,7 +47,7 @@ def brew_tempc():
     towerTempList = []
     lastLevelAlarm = None
     lastMsg = None
-    
+
     while True:
         if gcm.serverRunning:
             config.read(CONFIG_FILE)
@@ -85,16 +85,16 @@ def brew_tempc():
 		  if ((towerAlarm and fixitTowerByPower.lower() == "true") or (stillAlarm and fixitStillByPower.lower() == "true")):
 	            pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
                     pc.PowerCtl(GPIO.HIGH)
+                    print "Turn OFF Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
 		  else:
-		    msgType = 'alarma' 
-                  print "Turn OFF Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
+		    msgType = 'alarma'
                 elif ((fixitTowerByPower.lower() == "true") or (fixitStillByPower.lower() == "true")):
                   pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
                   pc.PowerCtl(GPIO.LOW)
                   print "Turn ON Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
 
 		pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
-     	     	state=pc.PowerRead()
+                state=pc.PowerRead()
                 if state == GPIO.LOW:
                   lastLevelAlarm = None
 
@@ -108,7 +108,7 @@ def brew_tempc():
 
 		if ((GCMSend.lower() == 'alarm' and msgType == "alarma") \
                     or (GCMSend.lower() == 'yes' and (not lastMsg or (lastMsg + updInterval < now))) ):
-	          print time.asctime(), "Current=", cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=", abstempStill, abstempTower, "LiqLevel=", state
+	          print time.asctime(), "Sending Current=", cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=", abstempStill, abstempTower, "LiqLevel=", state
                   gcm.send({'to': RegID, 'message_id': random_id(), \
                             #collapse_key' : msgType, \
                             'data' : {'type': msgType, \
@@ -120,8 +120,7 @@ def brew_tempc():
             else:
                 print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
 
-        
-        gcm.client.Process(1)                
+        gcm.client.Process(1)
         sys.stdout.flush()
 
 class MyDaemon():
@@ -136,6 +135,16 @@ class MyDaemon():
 
 if __name__ == "__main__":
 
+  if sys.argv[1] == 'start':
+    for gpio in (17, 18, 27, 22):
+      pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
+      pc.PowerCtl(GPIO.HIGH)
+      print "set gpio to high", gpio
+    os.system(os.getcwd() + "/TempMonitorServer/pwmcontrol &")
+
+  if sys.argv[1] == 'stop':
+    os.system("sudo killall pwmcontrol")
+      
   app = MyDaemon()
   daemon_runner = runner.DaemonRunner(app)
   daemon_runner.do_action()

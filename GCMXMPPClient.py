@@ -91,7 +91,7 @@ class GCMXMPPClient(object):
         pc = PowerControl(int(data.get("GPIO", None)), GPIO.OUT,  GPIO.PUD_OFF)
         if (pc.PowerCtl(GPIO.LOW if data.get("State", None)=="On" else GPIO.HIGH)):
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-                       'data' : {'type' : 'Notify', \
+                       'data' : {'type' : 'NotifyGPIO', \
                                    'GPIO' : data.get("GPIO", ""), \
                                    'State' : data.get("State", ""), \
                                    'note' : "PowerControl GPIO %s set to %s" % (data.get("GPIO", "Unknown"), data.get("State", "Unknown")) }})
@@ -100,9 +100,33 @@ class GCMXMPPClient(object):
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
 
       if data.get('message_type', None) == 'DimmerControl':
-	f= open("/tmp/dimval.txt","w")
-	f.write(data.get("DIMMER", 50))
-	f.close()
+        try:
+          f = open("/tmp/dimval.txt","r")
+          dimval = f.read()
+          f.close()
+        except:
+          dimval = None
+        print dimval
+          
+        if dimval == "" or dimval == None:
+          dimval = 0;
+        if data.get("DIMMER", None) == "UP":
+          if int(dimval) < 120:
+            dimval = int(dimval) + 1
+        elif data.get("DIMMER", None) == "DN":
+          if int(dimval) > 0:
+            dimval = int(dimval) - 1
+        else:
+          dimval = data.get("DIMMER", 0)
+
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+                   'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
+                             'note' : "DIMMER Actuals received"}})	
+
+        f = open("/tmp/dimval.txt","w")
+        f.write(str(dimval))
+        f.close()
+        print dimval
 
       if data.get('message_type', None) == 'ReadDimmer':
         f= open("/tmp/dimval.txt","r")

@@ -17,7 +17,7 @@ case "$1" in
   start)
     echo "Starting TempMonitorServer"
     cd /home/pi/
-    python /home/pi/TempMonitorServer/brew_tempc.py start 
+    python /home/pi/TempMonitorServer/brew_tempc.py start
     ;;
   stop)
     echo "Stopping TempMonitorServer"
