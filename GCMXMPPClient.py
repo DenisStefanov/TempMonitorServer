@@ -111,11 +111,9 @@ class GCMXMPPClient(object):
         if dimval == "" or dimval == None:
           dimval = 0;
         if data.get("DIMMER", None) == "UP":
-          if int(dimval) < 120:
-            dimval = int(dimval) + 1
+          dimval = int(dimval) + 1 if int(dimval) < 120 else dimval
         elif data.get("DIMMER", None) == "DN":
-          if int(dimval) > 0:
-            dimval = int(dimval) - 1
+          dimval = int(dimval) - 1 if int(dimval) > 5 else dimval
         else:
           dimval = data.get("DIMMER", 0)
 
