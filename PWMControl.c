@@ -38,7 +38,7 @@ void ZCDHandle(void) {
 
 int readDim()
 {
-  char ch, numstr[4],file_name[25];
+  char numstr[4];
   FILE *fp;
   int num;
 
