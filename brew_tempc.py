@@ -53,7 +53,11 @@ def brew_tempc(gcm):
         print "Wrong sensor type configured"
         exit()
 
-    threading.Timer(updInterval, brew_tempc, [gcm]).start()
+    if os.environ["GCMDisconnected"] != "True":
+      threading.Timer(updInterval, brew_tempc, [gcm]).start()
+    else:
+      print "DISCONNECTED, NOT Reconnecting. In monit we trust"    
+      exit()
 
     if gcm.serverRunning:
       res = tempSource.getData()
@@ -130,6 +134,7 @@ class MyDaemon():
 if __name__ == "__main__":
 
   if sys.argv[1] == 'start':
+    os.environ["GCMDisconnected"] = "False"
     for gpio in (17, 18, 27, 22):
       pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
       pc.PowerCtl(GPIO.HIGH)
@@ -137,6 +142,7 @@ if __name__ == "__main__":
     os.system(os.getcwd() + "/TempMonitorServer/pwmcontrol &")
 
   if sys.argv[1] == 'stop':
+    os.environ["GCMDisconnected"] = "True"
     os.system("sudo killall pwmcontrol")
       
   app = MyDaemon()

@@ -63,9 +63,7 @@ class GCMXMPPClient(object):
       sys.exit(1)
     
   def disconnectHandler(self):
-    print "DISCONNECTED, NOT Reconnecting. In monit we trust"
-    exit()
-    #self.connect()
+    os.environ["GCMDisconnected"] = "True"
 
   def processData(self, msg):
     data = msg.get('data', None)
@@ -106,7 +104,6 @@ class GCMXMPPClient(object):
           f.close()
         except:
           dimval = None
-        print dimval
           
         if dimval == "" or dimval == None:
           dimval = 0;
@@ -127,11 +124,16 @@ class GCMXMPPClient(object):
         print dimval
 
       if data.get('message_type', None) == 'ReadDimmer':
-        f= open("/tmp/dimval.txt","r")
-	self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-       	         'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : f.read(), \
-           	 'note' : "DIMMER Actuals received"}})	
-	f.close()
+        try:
+          f= open("/tmp/dimval.txt","r")
+          dimval = f.read()
+          f.close()
+        except:
+          dimval = 0
+        
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+                     'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
+                               'note' : "DIMMER Actuals received"}})	
 
       if data.get('message_type', None) == 'ReadActuals':
         for gpio in (17, 18, 27, 22):
