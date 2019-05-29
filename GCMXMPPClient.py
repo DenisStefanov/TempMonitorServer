@@ -22,6 +22,29 @@ def reconfigRegId(regid):
   with open(CONFIG_FILE, 'wb') as configfile:
     config.write(configfile)
 
+def sendServerConfig(gcm, msg):
+  config = ConfigParser.RawConfigParser()
+  config.read(CONFIG_FILE)
+  gcm.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
+             'data' : {'type' : 'ServerConfig', \
+                       'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
+                       'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
+                       'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
+                       'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
+                       'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower'), \
+                       'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower')}}) 
+
+#        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60, \
+#                                  'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
+  print "Server config sent to Client - "
+  print {'type' : 'ServerConfig', \
+         'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
+         'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
+         'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
+         'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
+         'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
+         'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}
+    
 class GCMXMPPClient(object):
   def __init__(self):
     config = ConfigParser.RawConfigParser()
@@ -64,17 +87,19 @@ class GCMXMPPClient(object):
     
   def disconnectHandler(self):
     os.environ["GCMDisconnected"] = "True"
+    print "Disconnect handler. Set GCMDisconnected to True"
+    sys.exit(1)
 
   def processData(self, msg):
     data = msg.get('data', None)
     if data:
-      print "Received type %s data %s" % (msg.get("message_type", None), data)
+      print "Received data %s" % (data)
       if data.get('message_type', None) == 'GetPicture':
         wch = WebcamHandler()
         [path, picture] = wch.CaptureImage()
         dbx = DropboxHandler.TransferData(self.access_token)
         dbx.upload_file(path + picture, "/%s" % (picture))
-        self.send({'to': msg.get('from', None), 'message_id': random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id': random_id(), "time_to_live" : 60,\
                      'data' : {'type' : 'PictureURL', 'note' : picture}})
 
       if data.get('message_type', None) == 'StoreRegid':
@@ -82,19 +107,19 @@ class GCMXMPPClient(object):
         if regid:
           print "Got new REGID " + regid
           reconfigRegId(regid)
-          self.send({'to': msg.get('from', None), 'message_id': random_id(), \
+          self.send({'to': msg.get('from', None), 'message_id': random_id(), "time_to_live" : 60,\
                        'data' : {'type' : 'Notify', 'note' : "Registration ID has been updated"}})
 
       if data.get('message_type', None) == 'PowerControl':
         pc = PowerControl(int(data.get("GPIO", None)), GPIO.OUT,  GPIO.PUD_OFF)
         if (pc.PowerCtl(GPIO.LOW if data.get("State", None)=="On" else GPIO.HIGH)):
-          self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+          self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                        'data' : {'type' : 'NotifyGPIO', \
                                    'GPIO' : data.get("GPIO", ""), \
                                    'State' : data.get("State", ""), \
                                    'note' : "PowerControl GPIO %s set to %s" % (data.get("GPIO", "Unknown"), data.get("State", "Unknown")) }})
         else:
-          self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+          self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
 
       if data.get('message_type', None) == 'DimmerControl':
@@ -114,7 +139,7 @@ class GCMXMPPClient(object):
         else:
           dimval = data.get("DIMMER", 0)
 
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                    'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
                              'note' : "DIMMER Actuals received"}})	
 
@@ -131,7 +156,7 @@ class GCMXMPPClient(object):
         except:
           dimval = 0
         
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                      'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
                                'note' : "DIMMER Actuals received"}})	
 
@@ -139,46 +164,25 @@ class GCMXMPPClient(object):
         for gpio in (17, 18, 27, 22):
           pc = PowerControl(gpio, GPIO.OUT, GPIO.PUD_OFF)
           state=pc.PowerRead()
-          self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+          self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                      'data' : {'type' : 'NotifyGPIO', 'GPIO' : gpio, \
                                'State' : "Off" if state == GPIO.HIGH else "On", \
                                'note' : "GPIO Actuals received"}})
 
       if data.get('message_type', None) == 'StopServer':
         self.serverRunning = False
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                                   'data' : {'type' : 'Notify', 'note' : "Server stopped"}})
         print "Stopping server"
 
       if data.get('message_type', None) == 'StartServer':
         self.serverRunning = True
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                                   'data' : {'type' : 'Notify', 'note' : "Server started"}})
         print "Starting server"
 
       if data.get('message_type', None) == 'ConfigServerGet':
-        config = ConfigParser.RawConfigParser()
-        config.read(CONFIG_FILE)
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-                                  'data' : {'type' : 'ServerConfig', \
-                                   'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
-                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
-                                   'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
-                                   'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
-                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower'), \
-                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower')}}) 
-
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
-                                  'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
-        print "Server config sent to Client - "
-        print {'type' : 'ServerConfig', \
-                                   'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
-                                   'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
-                                   'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
-                                   'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
-                                   'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
-                                   'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}
-
+        sendServerConfig(self, msg)
 
       if data.get('message_type', None) == 'ServerConfig':
         config = ConfigParser.RawConfigParser()
@@ -189,9 +193,10 @@ class GCMXMPPClient(object):
             print "set " + data.get('message_type', None) , key, value
         with open(CONFIG_FILE, 'wb') as configfile:
           config.write(configfile)
-        self.send({'to': msg.get('from', None), 'message_id':  random_id(), \
+        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60, \
                                   'data' : {'type' : 'Notify', 'note' : "Server config has been updated"}})
         print "Server reconfigured"
+        sendServerConfig(self, msg)
 
   def message_callback(self, session, message):
     gcm = message.getTags('gcm')

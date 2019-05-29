@@ -43,7 +43,7 @@ def brew_tempc(gcm):
 
     if len(RegID) == 0:
         print "GCM Reg ID not found"
-        exit()
+        sys.exit(1)
         
     if tempSource == 'gpio':
         tempSource = GPIOSrc()
@@ -51,13 +51,14 @@ def brew_tempc(gcm):
         tempSource = DGTSrc()
     else:
         print "Wrong sensor type configured"
-        exit()
+        sys.exit(1)
 
     if os.environ["GCMDisconnected"] != "True":
+      print "Schedule new thread"
       threading.Timer(updInterval, brew_tempc, [gcm]).start()
     else:
       print "DISCONNECTED, NOT Reconnecting. In monit we trust"    
-      exit()
+      sys.exit(1)
 
     if gcm.serverRunning:
       res = tempSource.getData()
@@ -107,7 +108,7 @@ def brew_tempc(gcm):
         print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
       
         if ((GCMSend.lower() == 'alarm' and msgType == "alarma") or (GCMSend.lower() == 'yes') ):
-            gcm.send({'to': RegID, 'message_id': random_id(), \
+            gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                       #collapse_key' : msgType, \
                       'data' : {'type': msgType, \
                                 'LastUpdated' : time.asctime(), \
@@ -117,8 +118,8 @@ def brew_tempc(gcm):
       else:
         print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
       
-      gcm.client.Process(1)
-      sys.stdout.flush()
+    gcm.client.Process(1)
+    sys.stdout.flush()
 
 class MyDaemon():
     def __init__(self):
