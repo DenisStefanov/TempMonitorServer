@@ -61,8 +61,8 @@ def brew_tempc(gcm):
 
     if gcm.serverRunning:
       res = tempSource.getData()
-      cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1]
-      if cur_temp:
+      if res:
+        cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1, res[2] if len(res) > 2 else -1]
         stillTempList.append(cur_temp[0])
         towerTempList.append(cur_temp[1])
       
@@ -114,6 +114,10 @@ def brew_tempc(gcm):
                                 'tempStill' : cur_temp[0], \
                                 'tempTower' : cur_temp[1], \
                                 'liqLevelSensor'  :"true" if state== GPIO.HIGH else "false"}})
+
+	#pc = PowerControl(XXX, GPIO.OUT,  GPIO.PUD_OFF) #cooler temp sensor
+	#pc.PowerCtl(GPIO.LOW if cur_temp[2] > 60 else GPIO.HIGH))
+
       else:
         print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
       
