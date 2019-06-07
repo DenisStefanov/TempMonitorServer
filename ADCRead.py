@@ -4,7 +4,7 @@ import time
 
 # Import the ADS1x15 module.
 import Adafruit_ADS1x15
-
+ADC_FILE = "/tmp/adcval.txt"
 
 # Create an ADS1115 ADC (16-bit) instance.
 adc = Adafruit_ADS1x15.ADS1115()
@@ -42,7 +42,7 @@ while True:
         # ADC (ADS1015 = 12-bit, ADS1115 = 16-bit).
 
     try:
-        f = open("/tmp/adcval.txt","w")
+        f = open(ADC_FILE, "w")
         f.write(str(values))
         f.close()
     except:

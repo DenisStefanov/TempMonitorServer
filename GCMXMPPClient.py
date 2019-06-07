@@ -9,6 +9,8 @@ import DropboxHandler
 from WebcamHandler import WebcamHandler
 
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
+DIMMER_FILE = "/tmp/dimval.txt"
+ADC_FILE = "/tmp/adcval.txt"
 
 def random_id():
   rid = ''
@@ -124,7 +126,7 @@ class GCMXMPPClient(object):
 
       if data.get('message_type', None) == 'DimmerControl':
         try:
-          f = open("/tmp/dimval.txt","r")
+          f = open(DIMMER_FILE, "r")
           dimval = f.read()
           f.close()
         except:
@@ -143,14 +145,13 @@ class GCMXMPPClient(object):
                    'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
                              'note' : "DIMMER Actuals received"}})	
 
-        f = open("/tmp/dimval.txt","w")
+        f = open(DIMMER_FILE, "w")
         f.write(str(dimval))
         f.close()
-        print dimval
 
       if data.get('message_type', None) == 'ReadDimmer':
         try:
-          f= open("/tmp/dimval.txt","r")
+          f= open(DIMMER_FILE, "r")
           dimval = f.read()
           f.close()
         except:

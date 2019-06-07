@@ -8,11 +8,11 @@
 #define PWMPin 4
 volatile int dimming;
 
-struct timeval tm1, tm2;
+//struct timeval tm1, tm2;
 
 void ZCDHandle(void) {
 
-  gettimeofday(&tm1, NULL);
+  //gettimeofday(&tm1, NULL);
   //printf("%d.%d, %d.%d\n", tm1.tv_sec, tm1.tv_usec/1000, tm2.tv_sec, tm2.tv_usec/1000);
   //printf("%d, %d\n", tm1.tv_sec+tm1.tv_usec/1000, tm2.tv_sec+tm2.tv_usec/1000);
   //int timediff = ((tm1.tv_sec * 1000 * 1000 + tm1.tv_usec) - (tm2.tv_sec * 1000 * 1000 + tm2.tv_usec)) / 1000;

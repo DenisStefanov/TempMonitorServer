@@ -7,15 +7,11 @@ from daemon import runner
 import random, string
 
 import RPi.GPIO as GPIO
-from GPIOSrc import GPIOSrc
-from DGTSrc import DGTSrc
-from GCMClient import GCMClient
 from GCMXMPPClient import GCMXMPPClient
 from PowerControl import PowerControl
 
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
-lastLevelAlarm = None
 stillTempList = []
 towerTempList = []
 
@@ -25,12 +21,11 @@ def random_id():
     return rid
 
 def brew_tempc(gcm):
-    global lastLevelAlarm, stillTempList, towerTempList
+    global stillTempList, towerTempList
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     updInterval = int( config.get('Common', 'updateinterval'))
-    GCMSend = config.get('Common', 'gcmsend')
     fixitStill = config.get('ServerConfig', 'fixtempStill')
     abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
     deltaStill = float(config.get('ServerConfig', 'deltastill'))
@@ -39,6 +34,9 @@ def brew_tempc(gcm):
     fixitStillByPower = config.get('ServerConfig', 'fixtempstillbypower')
     abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
     deltaTower = float(config.get('ServerConfig', 'deltatower'))
+    stillSensorIDX = int( config.get('ServerConfig', 'stillTempSensorIDX'))
+    towerSensorIDX = int( config.get('ServerConfig', 'towerTempSensorIDX'))
+    coolerSensorIDX = int( config.get('ServerConfig', 'coolerTempSensorIDX'))
     RegID = config.get('Common', 'regid')
 
     if len(RegID) == 0:
@@ -46,15 +44,16 @@ def brew_tempc(gcm):
         sys.exit(1)
         
     if tempSource == 'gpio':
+        from GPIOSrc import GPIOSrc
         tempSource = GPIOSrc()
     elif tempSource == 'usb':
+        from DGTSrc import DGTSrc
         tempSource = DGTSrc()
     else:
         print "Wrong sensor type configured"
         sys.exit(1)
 
     if os.environ["GCMDisconnected"] != "True":
-      print "Schedule new thread"
       threading.Timer(updInterval, brew_tempc, [gcm]).start()
     else:
       print "DISCONNECTED, NOT Reconnecting. In monit we trust"    
@@ -64,8 +63,8 @@ def brew_tempc(gcm):
       res = tempSource.getData()
       if res:
         cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1, res[2] if len(res) > 2 else -1]
-        stillTempList.append(cur_temp[0])
-        towerTempList.append(cur_temp[1])
+        stillTempList.append(cur_temp[stillSensorIDX])
+        towerTempList.append(cur_temp[towerSensorIDX])
       
         if len(stillTempList) >= 10:
           stillTempList.pop(0)
@@ -78,47 +77,53 @@ def brew_tempc(gcm):
         msgType = "upd"
         
         stillAlarm = fixitStill.lower() == "true" and \
-                     (abstempStill == 0 and cur_temp[0] > stillTempAvg + deltaStill or \
-                      abstempStill != 0 and cur_temp[0] > abstempStill)
+                     (abstempStill == 0 and cur_temp[stillSensorIDX] > stillTempAvg + deltaStill or \
+                      abstempStill != 0 and cur_temp[stillSensorIDX] > abstempStill)
 	towerAlarm = fixitTower.lower() == "true" and \
-                     (abstempTower == 0 and cur_temp[1] > towerTempAvg + deltaTower or \
-                      abstempTower != 0 and cur_temp[1] > abstempTower)
+                     (abstempTower == 0 and cur_temp[towerSensorIDX] > towerTempAvg + deltaTower or \
+                      abstempTower != 0 and cur_temp[towerSensorIDX] > abstempTower)
+
+	pc17 = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF) #cooler power
+        pc18 = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF) #heat
+        pc25 = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)   #level sensor
+        
+        if cur_temp[coolerSensorIDX] > 45:
+            pc17.PowerCtl(GPIO.LOW)
+        if cur_temp[coolerSensorIDX] < 30:
+            pc17.PowerCtl(GPIO.HIGH)
         
         if stillAlarm or towerAlarm:
             if ((towerAlarm and fixitTowerByPower.lower() == "true") or (stillAlarm and fixitStillByPower.lower() == "true")):
-                pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
-                pc.PowerCtl(GPIO.HIGH)
-                print "Turn OFF Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
+                pc18.PowerCtl(GPIO.HIGH)
+                print "Turn OFF Still diff = %s Tower diff = %s" % (cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg) 
             else:
                 msgType = 'alarma'
         elif ((fixitTowerByPower.lower() == "true") or (fixitStillByPower.lower() == "true")):
-            pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
-            pc.PowerCtl(GPIO.LOW)
-            print "Turn ON Still diff = %s Tower diff = %s" % (cur_temp[0] - stillTempAvg, cur_temp[1] - towerTempAvg) 
+            pc18.PowerCtl(GPIO.LOW)
+            print "Turn ON Still diff = %s Tower diff = %s" % (cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg) 
       
-        pc = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)
-        state=pc.PowerRead()
-        if state == GPIO.LOW:
-            lastLevelAlarm = None
+        heat = pc18.PowerRead()
+        liqLevel = pc25.PowerRead()
+        cooler = pc17.PowerRead()
         
-        if state == GPIO.HIGH and (not lastLevelAlarm or (lastLevelAlarm + 10 * 60 < time.time())):
+        if liqLevel == GPIO.HIGH
             msgType = 'alarma'
-            lastLevelAlarm = time.time()
-          
-        print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", state
+
+        if cur_temp[coolerSensorIDX] > 50:
+            msgType = 'alarma'
+            
+        print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", liqLevel
       
-        if ((GCMSend.lower() == 'alarm' and msgType == "alarma") or (GCMSend.lower() == 'yes') ):
-            gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
-                      #collapse_key' : msgType, \
-                      'data' : {'type': msgType, \
-                                'LastUpdated' : time.asctime(), \
-                                'tempStill' : cur_temp[0], \
-                                'tempTower' : cur_temp[1], \
-                                'liqLevelSensor'  :"true" if state== GPIO.HIGH else "false"}})
-
-	#pc = PowerControl(XXX, GPIO.OUT,  GPIO.PUD_OFF) #cooler temp sensor
-	#pc.PowerCtl(GPIO.LOW if cur_temp[2] > 60 else GPIO.HIGH))
-
+        gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
+                  #collapse_key' : msgType, \
+                  'data' : {'type': msgType, \
+                            'LastUpdated' : time.asctime(), \
+                            'tempStill' : cur_temp[stillSensorIDX], \
+                            'tempTower' : cur_temp[towerSensorIDX], \
+                            'tempCooler' : cur_temp[coolerSensorIDX], \
+                            'liqLevelSensor'  :"true" if liqLevel == GPIO.HIGH else "false", \
+                            'heatGPIO' : "Off" if heat == GPIO.HIGH else "On", \
+                            'coolerGPIO' : "Off" if cooler == GPIO.HIGH else "On"}})
       else:
         print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
       
@@ -140,15 +145,22 @@ if __name__ == "__main__":
 
   if sys.argv[1] == 'start':
     os.environ["GCMDisconnected"] = "False"
+
+    os.system("sudo killall pwmcontrol")
+    os.system("ps aux | grep ADCRead | grep -v 'grep' | awk '{print $2}' | xargs kill")
+
     for gpio in (17, 18, 27, 22):
       pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
       pc.PowerCtl(GPIO.HIGH)
       print "set gpio to high", gpio
+
     os.system(os.getcwd() + "/TempMonitorServer/pwmcontrol &")
+    os.system("python " + os.getcwd() + "/TempMonitorServer/ADCRead.py &")
 
   if sys.argv[1] == 'stop':
     os.environ["GCMDisconnected"] = "True"
     os.system("sudo killall pwmcontrol")
+    os.system("ps aux | grep ADCRead | grep -v 'grep' | awk '{print $2}' | xargs kill")
       
   app = MyDaemon()
   daemon_runner = runner.DaemonRunner(app)
