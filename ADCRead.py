@@ -43,7 +43,7 @@ while True:
 
     try:
         f = open(ADC_FILE, "w")
-        f.write(str(values))
+        f.write(str(values[0]) + ',' + str(values[1]) + ',' + str(values[2]) + ',' + str(values[3]))
         f.close()
     except:
         raise

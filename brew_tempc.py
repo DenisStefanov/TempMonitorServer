@@ -10,6 +10,7 @@ import RPi.GPIO as GPIO
 from GCMXMPPClient import GCMXMPPClient
 from PowerControl import PowerControl
 
+ADC_FILE = "/tmp/adcval.txt"
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
 stillTempList = []
@@ -26,17 +27,18 @@ def brew_tempc(gcm):
     config.read(CONFIG_FILE)
     tempSource = config.get('Common', 'sensors')
     updInterval = int( config.get('Common', 'updateinterval'))
-    fixitStill = config.get('ServerConfig', 'fixtempStill')
-    abstempStill = float(config.get('ServerConfig', 'absoluteStill'))
+    fixitStill = config.get('ServerConfig', 'fixtempstill')
+    abstempStill = float(config.get('ServerConfig', 'absolutestill'))
     deltaStill = float(config.get('ServerConfig', 'deltastill'))
-    fixitTower = config.get('ServerConfig', 'fixtempTower')
+    fixitTower = config.get('ServerConfig', 'fixtemptower')
     fixitTowerByPower = config.get('ServerConfig', 'fixtemptowerbypower')
     fixitStillByPower = config.get('ServerConfig', 'fixtempstillbypower')
-    abstempTower = float(config.get('ServerConfig', 'absoluteTower'))
+    abstempTower = float(config.get('ServerConfig', 'absolutetower'))
     deltaTower = float(config.get('ServerConfig', 'deltatower'))
-    stillSensorIDX = int( config.get('ServerConfig', 'stillTempSensorIDX'))
-    towerSensorIDX = int( config.get('ServerConfig', 'towerTempSensorIDX'))
-    coolerSensorIDX = int( config.get('ServerConfig', 'coolerTempSensorIDX'))
+    stillSensorIDX = int( config.get('ServerConfig', 'stilltempsensoridx'))
+    towerSensorIDX = int( config.get('ServerConfig', 'towertempsensoridx'))
+    coolerSensorIDX = int( config.get('ServerConfig', 'coolertempsensoridx'))
+    pressureSensorIDX = int( config.get('ServerConfig', 'pressuresensoridx'))
     RegID = config.get('Common', 'regid')
 
     if len(RegID) == 0:
@@ -111,8 +113,16 @@ def brew_tempc(gcm):
 
         if cur_temp[coolerSensorIDX] > 50:
             msgType = 'alarma'
+
+        try:
+          f = open(ADC_FILE, "r")
+          pressureVal = f.read().split(',')[pressureSensorIDX]
+          f.close()
+        except:
+	  pressureVal = ""
+          raise
             
-        print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", liqLevel
+        print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", liqLevel, "pressure=", pressureVal
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                   #collapse_key' : msgType, \
@@ -123,7 +133,8 @@ def brew_tempc(gcm):
                             'tempCooler' : cur_temp[coolerSensorIDX], \
                             'liqLevelSensor'  :"true" if liqLevel == GPIO.HIGH else "false", \
                             'heatGPIO' : "Off" if heat == GPIO.HIGH else "On", \
-                            'coolerGPIO' : "Off" if cooler == GPIO.HIGH else "On"}})
+                            'coolerGPIO' : "Off" if cooler == GPIO.HIGH else "On", \
+			    'pressureVal' : pressureVal }})
       else:
         print "no data from sensors. Make sure you have 'dtoverlay=w1-gpio' in your /boot/config.txt"
       
