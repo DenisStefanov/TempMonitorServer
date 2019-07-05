@@ -3,34 +3,50 @@ import time
 from PowerControl import PowerControl
 import RPi.GPIO as GPIO
 
-CloseGPIO = 22
-OpenGPIO  = 27
-cycleTime = 15
+CloseGPIO = 27
+OpenGPIO  = 22
+cycleTimeClose = 28.5
+cycleTimeOpen = 26.5
+
+
+class WaterControl():
+    def __init__(self):
+        self.pcOpen  = PowerControl(OpenGPIO, GPIO.OUT,  GPIO.PUD_OFF)
+        self.pcClose = PowerControl(CloseGPIO, GPIO.OUT,  GPIO.PUD_OFF)
+
+    def Open(self, percent):
+        if percent > 0 and percent <= 100:
+            self.pcClose.PowerCtl(GPIO.HIGH)
+            time.sleep(0.5)
+            self.pcOpen.PowerCtl(GPIO.LOW)
+            time.sleep(percent / 100 * partMove)
+            self.pcOpen.PowerCtl(GPIO.HIGH)
+        else:
+            print "Open: wrong paramenter percent ", percent
+
+
+    def Close(self, percent):
+        if percent > 0 and percent <= 100:
+            self.pcOpen.PowerCtl(GPIO.HIGH)
+            time.sleep(0.5)
+            self.pcClose.PowerCtl(GPIO.LOW)
+            time.sleep(percent / 100 * partMove)
+            self.pcClose.PowerCtl(GPIO.HIGH)
+        else:
+            print "Close: wrong paramenter percent ", percent
 
 if __name__ == "__main__":
-    pcOpen  = PowerControl(27, GPIO.OUT,  GPIO.PUD_OFF)
-    pcClose = PowerControl(22, GPIO.OUT,  GPIO.PUD_OFF)
 
     op = sys.argv[1].lower() if len(sys.argv) > 1 else None
-    partMove = sys.argv[2] if len(sys.argv) > 2 else 100
+    partMove = int(sys.argv[2]) if len(sys.argv) > 2 else 100
 
     if op == 'open':
-    	if partMove > 0 and partMove <= 100:
-	    pcClose.PowerCtl(GPIO.HIGH)
-	    time.sleep(0.5)
-            pcOpen.PowerCtl(GPIO.LOW)
-	    partMove = cycleTime / 100 * partMove
-	    time.sleep(partMove)
-	    pcOpen.PowerCtl(GPIO.HIGH)
-
+        wc = WaterControl()
+        wc.Open(partMove)
+  
     if op == 'close':
-    	if partMove > 0 and partMove <= 100:
-	    pcOpen.PowerCtl(GPIO.HIGH)
-	    time.sleep(0.5)
-            pcClose.PowerCtl(GPIO.LOW)
-	    partMove = cycleTime / 100 * partMove
-	    time.sleep(partMove)
-	    pcClose.PowerCtl(GPIO.HIGH)
+        wc = WaterControl()
+        wc.Close(partMove)
 
 
 

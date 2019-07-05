@@ -108,7 +108,7 @@ def brew_tempc(gcm):
         liqLevel = pc25.PowerRead()
         cooler = pc17.PowerRead()
         
-        if liqLevel == GPIO.HIGH
+        if liqLevel == GPIO.HIGH:
             msgType = 'alarma'
 
         if cur_temp[coolerSensorIDX] > 50:
