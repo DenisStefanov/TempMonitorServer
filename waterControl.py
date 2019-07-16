@@ -19,7 +19,7 @@ class WaterControl():
             self.pcClose.PowerCtl(GPIO.HIGH)
             time.sleep(0.5)
             self.pcOpen.PowerCtl(GPIO.LOW)
-            time.sleep(percent / 100 * partMove)
+            time.sleep(cycleTimeOpen / 100 * percent)
             self.pcOpen.PowerCtl(GPIO.HIGH)
         else:
             print "Open: wrong paramenter percent ", percent
@@ -30,7 +30,7 @@ class WaterControl():
             self.pcOpen.PowerCtl(GPIO.HIGH)
             time.sleep(0.5)
             self.pcClose.PowerCtl(GPIO.LOW)
-            time.sleep(percent / 100 * partMove)
+            time.sleep(cycleTimeClose / 100 * percent)
             self.pcClose.PowerCtl(GPIO.HIGH)
         else:
             print "Close: wrong paramenter percent ", percent

@@ -119,7 +119,8 @@ class GCMXMPPClient(object):
                        'data' : {'type' : 'NotifyGPIO', \
                                    'GPIO' : data.get("GPIO", ""), \
                                    'State' : data.get("State", ""), \
-                                   'note' : "PowerControl GPIO %s set to %s" % (data.get("GPIO", "Unknown"), data.get("State", "Unknown")) }})
+                                   'note' : "PowerControl GPIO %s set to %s" % (data.get("GPIO", "Unknown"), \
+                                                                                data.get("State", "Unknown")) }})
         else:
           self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                        'data' : {'type' : 'Notify', 'note' : "PowerControl failure"}})
