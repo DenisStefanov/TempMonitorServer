@@ -49,6 +49,18 @@ def sendServerConfig(gcm, msg):
          'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
          'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}
     
+def waterOpen(gcm, to, percent):
+  wc = WaterControl()
+  wc.Open(percent)
+  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+             'data' : {'type' : 'NotifyWater', 'note' : "WaterOpenOK"}})
+
+def waterClose(gcm, to, percent):
+  wc = WaterControl()
+  wc.Close(percent)
+  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+             'data' : {'type' : 'NotifyWater', 'note' : "WaterCloseOK"}})
+
 class GCMXMPPClient(object):
   def __init__(self):
     config = ConfigParser.RawConfigParser()
@@ -141,29 +153,26 @@ class GCMXMPPClient(object):
         elif data.get("DIMMER", None) == "DN":
           dimval = int(dimval) - 1 if int(dimval) > 5 else dimval
         else:
-          dimval = data.get("DIMMER", 0)
-
+          dimval = int(data.get("DIMMER", 0))
+          
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                    'data' : {'type' : 'NotifyDIMMER', 'DIMMER' : dimval, \
                              'note' : "DIMMER Actuals received"}})	
 
         pc = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)
-        pc.PowerCtl(GPIO.LOW if dimval > 4 else GPIO.HIGH))
+        pc.PowerCtl(GPIO.LOW if dimval > 5 else GPIO.HIGH)
 
         f = open(DIMMER_FILE, "w")
         f.write(str(dimval))
         f.close()
 
       if data.get('message_type', None) == 'WaterControl':
-	valOpen  = data.get("OPEN", 0)
-	valClose = data.get("CLOSE", 0)
-	wc = WaterControl()
+	valOpen  = int(data.get("OPEN", 0))
+	valClose = int(data.get("CLOSE", 0))
 	if valOpen > 0:
-	  x = threading.Thread(target=wc.Open, args=(val,))
-	  x.start()
+	  threading.Thread(target=waterOpen, args=(self, msg.get('from', None), valOpen,)).start()
 	elif valClose > 0:
-	  x = threading.Thread(target=wc.Close, args=(val,))
-	  x.start()
+	  threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()
 	else:
 	  print "Water Control value is wrong"
 
