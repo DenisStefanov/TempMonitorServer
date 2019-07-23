@@ -7,12 +7,32 @@ CloseGPIO = 27
 OpenGPIO  = 22
 cycleTimeClose = 28.5
 cycleTimeOpen = 26.5
+WATER_FILE = "/tmp/waterval.txt"
 
 
 class WaterControl():
     def __init__(self):
         self.pcOpen  = PowerControl(OpenGPIO, GPIO.OUT,  GPIO.PUD_OFF)
         self.pcClose = PowerControl(CloseGPIO, GPIO.OUT,  GPIO.PUD_OFF)
+	(self.openPercent, self.closePercent) = readWaterPosition()
+
+    def writeWaterPosition(openPercent, closePercent):
+        try:
+            f = open(WATER_FILE, "w")
+            f.write(openPercent + "," + closePercent)
+            f.close()
+        except:
+            raise
+
+    def readWaterPosition():
+        try:
+            f = open(WATER_FILE, "r")
+            waterVal = f.read().split(',')
+            f.close()
+        except:
+	    waterVal = [0,0]
+            raise
+	return waterVal
 
     def Open(self, percent):
         if percent > 0 and percent <= 100:
@@ -21,6 +41,11 @@ class WaterControl():
             self.pcOpen.PowerCtl(GPIO.LOW)
             time.sleep(cycleTimeOpen / 100 * percent)
             self.pcOpen.PowerCtl(GPIO.HIGH)
+
+	    self.openPercent += percent
+	    if self.openPercent > 100:
+		self.openPercent = 100
+	    writeWaterPosition(self.openPercent, self.closePercent)
         else:
             print "Open: wrong paramenter percent ", percent
 
@@ -32,7 +57,12 @@ class WaterControl():
             self.pcClose.PowerCtl(GPIO.LOW)
             time.sleep(cycleTimeClose / 100 * percent)
             self.pcClose.PowerCtl(GPIO.HIGH)
-        else:
+
+	    self.closePercent += percent
+	    if self.closePercent > 100:
+		self.closePercent = 100
+            writeWaterPosition(self.openPercent, self.closePercent)
+	else:
             print "Close: wrong paramenter percent ", percent
 
 if __name__ == "__main__":
