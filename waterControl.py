@@ -14,24 +14,25 @@ class WaterControl():
     def __init__(self):
         self.pcOpen  = PowerControl(OpenGPIO, GPIO.OUT,  GPIO.PUD_OFF)
         self.pcClose = PowerControl(CloseGPIO, GPIO.OUT,  GPIO.PUD_OFF)
-	(self.openPercent, self.closePercent) = readWaterPosition()
+	[self.openPercent, self.closePercent] = self.readWaterPosition()
 
-    def writeWaterPosition(openPercent, closePercent):
+    def writeWaterPosition(self, openPercent, closePercent):
         try:
-            f = open(WATER_FILE, "w")
-            f.write(openPercent + "," + closePercent)
+            f = open(WATER_FILE, 'w')
+            f.write(str(openPercent) + "," + str(closePercent))
             f.close()
         except:
             raise
 
-    def readWaterPosition():
+    def readWaterPosition(self):
         try:
-            f = open(WATER_FILE, "r")
+            f = open(WATER_FILE, 'r')
             waterVal = f.read().split(',')
+            if len(waterVal) < 2:
+                waterVal = [0,0]
             f.close()
         except:
-	    waterVal = [0,0]
-            raise
+            print "water control file empty. ignoring"
 	return waterVal
 
     def Open(self, percent):
@@ -45,7 +46,7 @@ class WaterControl():
 	    self.openPercent += percent
 	    if self.openPercent > 100:
 		self.openPercent = 100
-	    writeWaterPosition(self.openPercent, self.closePercent)
+	    self.writeWaterPosition(self.openPercent, self.closePercent)
         else:
             print "Open: wrong paramenter percent ", percent
 
@@ -61,7 +62,7 @@ class WaterControl():
 	    self.closePercent += percent
 	    if self.closePercent > 100:
 		self.closePercent = 100
-            writeWaterPosition(self.openPercent, self.closePercent)
+            self.writeWaterPosition(self.openPercent, self.closePercent)
 	else:
             print "Close: wrong paramenter percent ", percent
 

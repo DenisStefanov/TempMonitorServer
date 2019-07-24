@@ -53,13 +53,13 @@ def waterOpen(gcm, to, percent):
   wc = WaterControl()
   wc.Open(percent)
   gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-             'data' : {'type' : 'NotifyWater', 'note' : wc.openPercent + "," + wc.closePercent}})
+             'data' : {'type' : 'NotifyWater', 'note' : str(wc.openPercent) + "," + str(wc.closePercent)}})
 
 def waterClose(gcm, to, percent):
   wc = WaterControl()
   wc.Close(percent)
   gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-             'data' : {'type' : 'NotifyWater', 'note' : wc.openPercent + "," + wc.closePercent}})
+             'data' : {'type' : 'NotifyWater', 'note' : str(wc.openPercent) + "," + str(wc.closePercent)}})
 
 class GCMXMPPClient(object):
   def __init__(self):
