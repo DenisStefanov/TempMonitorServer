@@ -9,8 +9,8 @@ import random, string
 import RPi.GPIO as GPIO
 from GCMXMPPClient import GCMXMPPClient
 from PowerControl import PowerControl
+from ADC import adc
 
-ADC_FILE = "/tmp/adcval.txt"
 DIMMER_FILE = "/tmp/dimval.txt"
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
@@ -59,7 +59,7 @@ def brew_tempc(gcm):
     if os.environ["GCMDisconnected"] != "True":
       threading.Timer(updInterval, brew_tempc, [gcm]).start()
     else:
-      print "DISCONNECTED, NOT Reconnecting. In monit we trust"    
+      print "DISCONNECTED, NOT Reconnecting. In monit we trust" 
       sys.exit(1)
 
     if gcm.serverRunning:
@@ -125,14 +125,9 @@ def brew_tempc(gcm):
         if cur_temp[coolerSensorIDX] > 50:
             msgType = 'alarma'
 
-        try:
-          f = open(ADC_FILE, "r")
-          pressureVal = f.read().split(',')[pressureSensorIDX]
-          f.close()
-        except:
-	  pressureVal = ""
-          raise
-            
+	hadc = adc()
+	pressureVal = hadc.read(pressureSensorIDX)
+	            
         print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", liqLevel, "pressure=", pressureVal
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
@@ -169,7 +164,6 @@ if __name__ == "__main__":
     os.environ["GCMDisconnected"] = "False"
 
     os.system("sudo killall pwmcontrol")
-    os.system("ps aux | grep ADCRead | grep -v 'grep' | awk '{print $2}' | xargs kill")
 
     for gpio in (17, 18, 27, 22):
       pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
@@ -177,7 +171,6 @@ if __name__ == "__main__":
       print "set gpio to high", gpio
 
     os.system(os.getcwd() + "/TempMonitorServer/pwmcontrol &")
-    os.system("python " + os.getcwd() + "/TempMonitorServer/ADCRead.py &")
 
   if sys.argv[1] == 'stop':
     os.environ["GCMDisconnected"] = "True"
