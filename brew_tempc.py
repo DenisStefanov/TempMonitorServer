@@ -96,12 +96,8 @@ def brew_tempc(gcm):
             pc17.PowerCtl(GPIO.HIGH)
 
         dimval = 0;
-        try:
-          f = open(DIMMER_FILE, "r")
-          dimval = f.read()
-          f.close()
-        except:
-          raise
+	with open(DIMMER_FILE, "r") as f:
+            dimval = int(f.read())
           
         pc18.PowerCtl(GPIO.LOW if dimval > 5 else GPIO.HIGH)
             
