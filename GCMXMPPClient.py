@@ -12,7 +12,6 @@ from waterControl import WaterControl
 
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 DIMMER_FILE = "/tmp/dimval.txt"
-ADC_FILE = "/tmp/adcval.txt"
 
 def random_id():
   rid = ''
