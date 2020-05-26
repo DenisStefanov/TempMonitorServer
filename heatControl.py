@@ -1,8 +1,9 @@
+import os
 import sys
 from PowerControl import PowerControl
 import RPi.GPIO as GPIO
 
-DIMMER_FILE = "/tmp/dimval.txt"
+DIMMER_FILE = os.getcwd() + "/TempMonitorServer/dimval.txt"
 
 if __name__ == "__main__":
     pc18 = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF)

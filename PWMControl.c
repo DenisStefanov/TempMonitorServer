@@ -6,6 +6,7 @@
 // Which GPIO pin we're using
 #define ZCDPin 5
 #define PWMPin 4
+#define DIM_FILE "/home/pi/TempMonitorServer/dimval.txt"
 volatile int dimming;
 
 //struct timeval tm1, tm2;
@@ -43,7 +44,7 @@ int readDim()
   int num;
 
 
-  fp = fopen("/tmp/dimval.txt", "r"); 
+  fp = fopen(DIM_FILE, "r");
 
   if (fp == NULL)
     {

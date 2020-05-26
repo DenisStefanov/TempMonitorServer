@@ -11,7 +11,7 @@ from GCMXMPPClient import GCMXMPPClient
 from PowerControl import PowerControl
 from ADC import adc
 
-DIMMER_FILE = "/tmp/dimval.txt"
+DIMMER_FILE = os.getcwd() + "/TempMonitorServer/dimval.txt"
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
 stillTempList = []
@@ -95,10 +95,13 @@ def brew_tempc(gcm):
         if cur_temp[coolerSensorIDX] < 30:
             pc17.PowerCtl(GPIO.HIGH)
 
-        dimval = 0;
-	with open(DIMMER_FILE, "r") as f:
-            dimval = int(f.read())
-          
+        dimval = 4;
+        try:
+            with open(DIMMER_FILE, "r") as f:
+                dimval = int(f.read())
+        except:
+            pass
+
         pc18.PowerCtl(GPIO.LOW if dimval > 5 else GPIO.HIGH)
             
         if stillAlarm or towerAlarm:

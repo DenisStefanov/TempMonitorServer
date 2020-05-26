@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from PowerControl import PowerControl
@@ -7,7 +8,7 @@ CloseGPIO = 27
 OpenGPIO  = 22
 cycleTimeClose = 28.5
 cycleTimeOpen = 26.5
-WATER_FILE = "/tmp/waterval.txt"
+WATER_FILE = os.getcwd() + "/TempMonitorServer/waterval.txt"
 
 
 class WaterControl():

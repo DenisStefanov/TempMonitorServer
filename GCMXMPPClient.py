@@ -11,7 +11,7 @@ from WebcamHandler import WebcamHandler
 from waterControl import WaterControl
 
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
-DIMMER_FILE = "/tmp/dimval.txt"
+DIMMER_FILE = os.getcwd() + "/TempMonitorServer/dimval.txt"
 
 def random_id():
   rid = ''

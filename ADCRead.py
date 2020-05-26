@@ -1,10 +1,11 @@
 # Author: Tony DiCola
 # License: Public Domain
+import os
 import time
 
 # Import the ADS1x15 module.
 import Adafruit_ADS1x15
-ADC_FILE = "/tmp/adcval.txt"
+ADC_FILE = os.getcwd() + "/TempMonitorServer/adcval.txt"
 
 # Create an ADS1115 ADC (16-bit) instance.
 adc = Adafruit_ADS1x15.ADS1115()
