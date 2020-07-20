@@ -92,7 +92,7 @@ def brew_tempc(gcm):
         
         if cur_temp[coolerSensorIDX] > 45:
             pc17.PowerCtl(GPIO.LOW)
-        if cur_temp[coolerSensorIDX] < 30:
+        if cur_temp[coolerSensorIDX] < 35:
             pc17.PowerCtl(GPIO.HIGH)
 
         dimval = 4;
