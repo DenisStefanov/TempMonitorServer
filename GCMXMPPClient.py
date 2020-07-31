@@ -60,6 +60,14 @@ def waterClose(gcm, to, percent):
   gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
              'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
+def waterOpenViaClose(gcm, to, percent):
+  wc = WaterControl()
+  wc.Open(100)
+  print "about to close" , percent, ((percent - 180) / 180.0) * 100.0, (percent - 180) / 180.0, percent - 180 
+  wc.Close(((percent - 180) / 180.0) * 100.0)
+  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
+
 class GCMXMPPClient(object):
   def __init__(self):
     config = ConfigParser.RawConfigParser()
@@ -166,14 +174,27 @@ class GCMXMPPClient(object):
         f.close()
 
       if data.get('message_type', None) == 'WaterControl':
-	valOpen  = int(data.get("OPEN", 0))
-	valClose = int(data.get("CLOSE", 0))
-	if valOpen > 0:
-	  threading.Thread(target=waterOpen, args=(self, msg.get('from', None), valOpen,)).start()
-	elif valClose > 0:
-	  threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()
-	else:
-	  print "Water Control value is wrong"
+        try:
+          valOpen  = int(data.get("OPEN", 0))
+          valClose = int(data.get("CLOSE", 0))
+          print "ISDIGIT=true"
+          if valOpen > 0:
+            threading.Thread(target=waterOpen, args=(self, msg.get('from', None), valOpen,)).start()
+            print valOpen, valClose, 1
+          elif valClose > 0:
+            print valOpen, valClose, 2
+            threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()          
+        except ValueError:
+          print "ISDIGIT=FALSE"
+          valOpen  = data.get("OPEN", 0)
+          valClose = data.get("CLOSE", 0)
+          if valOpen == "DIST":
+            print valOpen, valClose, 3
+            threading.Thread(target=waterOpenViaClose, args=(self, msg.get('from', None), 324)).start()
+          elif valOpen == "REC":
+            print valOpen, valClose, 4
+            threading.Thread(target=waterOpenViaClose, args=(self, msg.get('from', None), 325)).start()
+
 
       if data.get('message_type', None) == 'ReadDimmer':
         try:

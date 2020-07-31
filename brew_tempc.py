@@ -127,7 +127,10 @@ def brew_tempc(gcm):
 	hadc = adc()
 	pressureVal = hadc.read(pressureSensorIDX)
 	            
-        print time.asctime(), "Current=",cur_temp, "Average=", stillTempAvg, towerTempAvg, "Limits=",abstempStill,abstempTower, "LiqLevel=", liqLevel, "pressure=", pressureVal
+        print time.asctime(), "Cur=",cur_temp, "AVG=", stillTempAvg, towerTempAvg, \
+                                    "Diffs=", cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg, \
+                                    "Limits=",abstempStill,abstempTower, \
+                                    "LiqLevel=", liqLevel, "pressure=", pressureVal, "MsgType=", msgType
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                   #collapse_key' : msgType, \
