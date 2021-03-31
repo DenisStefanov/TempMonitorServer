@@ -1,6 +1,6 @@
 import os
 import sys
-import time
+import time, random, string
 from PowerControl import PowerControl
 import RPi.GPIO as GPIO
 
@@ -10,6 +10,24 @@ cycleTimeClose = 28.5
 cycleTimeOpen = 26.5
 WATER_FILE = os.getcwd() + "/TempMonitorServer/waterval.txt"
 
+def random_id():
+    rid = ''
+    for x in range(8): rid += random.choice(string.ascii_letters + string.digits)
+    return rid
+
+def waterOpen(gcm, to, percent):
+  wc = WaterControl()
+  if wc.pcOpen.PowerRead() == GPIO.HIGH: #not currently running
+    wc.Open(percent)
+  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+            'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
+
+def waterClose(gcm, to, percent):
+  wc = WaterControl()
+  if wc.pcClose.PowerRead() == GPIO.HIGH: #not currently running
+    wc.Close(percent)
+  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+            'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
 class WaterControl():
     def __init__(self):
@@ -44,7 +62,6 @@ class WaterControl():
             self.pcOpen.PowerCtl(GPIO.LOW)
             time.sleep(cycleTimeOpen / 100 * percent)
             self.pcOpen.PowerCtl(GPIO.HIGH)
-
 	    self.angle  += int(1.80 * percent)
             print "percent = ", percent
             print "Open angle = ", self.angle
@@ -77,7 +94,6 @@ class WaterControl():
             print "Close: wrong paramenter percent ", percent
 
 if __name__ == "__main__":
-
     op = sys.argv[1].lower() if len(sys.argv) > 1 else None
     partMove = int(sys.argv[2]) if len(sys.argv) > 2 else 100
 
@@ -88,4 +104,3 @@ if __name__ == "__main__":
     if op == 'close':
         wc = WaterControl()
         wc.Close(partMove)
-

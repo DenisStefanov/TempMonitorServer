@@ -8,7 +8,7 @@ import RPi.GPIO as GPIO
 from PowerControl import PowerControl
 import DropboxHandler
 from WebcamHandler import WebcamHandler
-from waterControl import WaterControl
+from waterControl import waterOpen, waterClose
 
 CONFIG_FILE = os.getcwd() + '/TempMonitorServer/config.cfg'
 DIMMER_FILE = os.getcwd() + "/TempMonitorServer/dimval.txt"
@@ -46,27 +46,7 @@ def sendServerConfig(gcm, msg):
          'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
          'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
          'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
-         'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}
-    
-def waterOpen(gcm, to, percent):
-  wc = WaterControl()
-  wc.Open(percent)
-  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
-
-def waterClose(gcm, to, percent):
-  wc = WaterControl()
-  wc.Close(percent)
-  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
-
-def waterOpenViaClose(gcm, to, percent):
-  wc = WaterControl()
-  wc.Open(100)
-  print "about to close" , percent, ((percent - 180) / 180.0) * 100.0, (percent - 180) / 180.0, percent - 180 
-  wc.Close(((percent - 180) / 180.0) * 100.0)
-  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
+         'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}    
 
 class GCMXMPPClient(object):
   def __init__(self):
@@ -177,24 +157,12 @@ class GCMXMPPClient(object):
         try:
           valOpen  = int(data.get("OPEN", 0))
           valClose = int(data.get("CLOSE", 0))
-          print "ISDIGIT=true"
           if valOpen > 0:
             threading.Thread(target=waterOpen, args=(self, msg.get('from', None), valOpen,)).start()
-            print valOpen, valClose, 1
           elif valClose > 0:
-            print valOpen, valClose, 2
-            threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()          
-        except ValueError:
-          print "ISDIGIT=FALSE"
-          valOpen  = data.get("OPEN", 0)
-          valClose = data.get("CLOSE", 0)
-          if valOpen == "DIST":
-            print valOpen, valClose, 3
-            threading.Thread(target=waterOpenViaClose, args=(self, msg.get('from', None), 324)).start()
-          elif valOpen == "REC":
-            print valOpen, valClose, 4
-            threading.Thread(target=waterOpenViaClose, args=(self, msg.get('from', None), 325)).start()
-
+            threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()
+        except Exception, e:
+          print e
 
       if data.get('message_type', None) == 'ReadDimmer':
         try:

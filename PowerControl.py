@@ -8,19 +8,15 @@ class PowerControl():
         GPIO.setup(num, direction, pupdn)
 
     def PowerCtl(self, state):
-
         if state == None:
             return
         GPIO.output(self.num, state)
-
         return "Ok"
 
     def PowerRead(self):
-        
         try:
             state = GPIO.input(self.num)
         except Exception, e:
             print e
             return
-
         return state
