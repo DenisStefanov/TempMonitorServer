@@ -19,6 +19,7 @@ CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
 
 stillTempList = []
 towerTempList = []
+scenTimeStart = [None]*20
 
 def random_id():
     rid = ''
@@ -39,7 +40,7 @@ def brew_tempc(gcm):
     tempSource = config.get('Common', 'sensors')
     updInterval = int( config.get('Common', 'updateinterval'))
     ScenarioToday = config.get('Common', 'ScenarioToday')
-    #fakeTempData = map(int, config.get('Common', 'fakeTempData').split(','))
+    fakeTempData = map(float, config.get('Common', 'fakeTempData').split(',')[:3])
     fixitStill = config.get('ServerConfig', 'fixtempstill')
     abstempStill = float(config.get('ServerConfig', 'absolutestill'))
     deltaStill = float(config.get('ServerConfig', 'deltastill'))
@@ -76,20 +77,19 @@ def brew_tempc(gcm):
       sys.exit(1)
 
     if gcm.serverRunning:
-      res = tempSource.getData()
+      res = tempSource.getData() if config.get('Common', 'fakeTempData').split(',')[3]!="Active" else fakeTempData 
       if res:
         cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1, res[2] if len(res) > 2 else -1]
         stillTempList.append(cur_temp[stillSensorIDX])
         towerTempList.append(cur_temp[towerSensorIDX])
       
-        if len(stillTempList) >= 10:
-          stillTempList.pop(0)
+        #if len(stillTempList) >= 10:
+        #  stillTempList.pop(0)
+        #if len(towerTempList) >= 10:
+        #  towerTempList.pop(0)
       
-        if len(towerTempList) >= 10:
-          towerTempList.pop(0)
-      
-        stillTempAvg = round(sum(stillTempList) / len(stillTempList), 2)
-        towerTempAvg = round(sum(towerTempList) / len(towerTempList), 2)
+        stillTempAvg = round(sum(stillTempList[-10:]) / 10, 2)
+        towerTempAvg = round(sum(towerTempList[-10:]) / 10, 2)
         msgType = "upd"
         
         stillAlarm = fixitStill.lower() == "true" and \
@@ -102,7 +102,11 @@ def brew_tempc(gcm):
 	pc17 = PowerControl(17, GPIO.OUT,  GPIO.PUD_OFF) #cooler power
         pc18 = PowerControl(18, GPIO.OUT,  GPIO.PUD_OFF) #heat
         pc25 = PowerControl(25, GPIO.IN,  GPIO.PUD_UP)   #level sensor
-        
+
+        cooler = pc17.PowerRead()
+        heat   = pc18.PowerRead()
+        liqLevel = pc25.PowerRead()
+
         if cur_temp[coolerSensorIDX] > 45:
             pc17.PowerCtl(GPIO.LOW)
         if cur_temp[coolerSensorIDX] < 35:
@@ -128,42 +132,65 @@ def brew_tempc(gcm):
                 scenTempStillMax = int(ScenarioTempConfig[scenNum][1].split(',')[1])
                 scenTempTowerMin = int(ScenarioTempConfig[scenNum][2].split(',')[0])
                 scenTempTowerMax = int(ScenarioTempConfig[scenNum][2].split(',')[1])
-                scenWaterFun = ScenarioTempConfig[scenNum][3]
-                scenDimmer = ScenarioTempConfig[scenNum][4].split('=')[1]
-                scenDirect = ScenarioTempConfig[scenNum][5]
+                exitCriterias = ScenarioTempConfig[scenNum][3].split('=')[1].split(',')
+                scenWaterFun = ScenarioTempConfig[scenNum][4]
+                scenDimmer = ScenarioTempConfig[scenNum][5].split('=')[1]
+                scenDirect = ScenarioTempConfig[scenNum][6]
                 print ScenarioTempConfig[scenNum]
             except Exception, e:
                 break
 
+            #print cur_temp[stillSensorIDX], cur_temp[towerSensorIDX], scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax
             if (scenActive and
-                (cur_temp[stillSensorIDX] > scenTempStillMin and cur_temp[stillSensorIDX] < scenTempStillMax or
-                 cur_temp[towerSensorIDX] > scenTempTowerMin and cur_temp[towerSensorIDX] < scenTempTowerMax)):
-                print "Run scenario #%s. %s <> %s; %s <> %s" % (scenNum, scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax)
+                ((cur_temp[stillSensorIDX] > scenTempStillMin and cur_temp[stillSensorIDX] < scenTempStillMax) or
+                 (cur_temp[towerSensorIDX] > scenTempTowerMin and cur_temp[towerSensorIDX] < scenTempTowerMax))):
+
+                if scenTimeStart[scenNum] is None:
+                    scenTimeStart[scenNum] = datetime.datetime.now() 
+
+                print "Run scenario #%s. %s <> %s; %s <> %s direct = %s TimeStart = %s" % \
+                    (scenNum, scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax, scenDirect, scenTimeStart[scenNum])
+
                 f = open(DIMMER_FILE, "w")
-                f.write(scenDimmer)
+                f.write(str(int(int(scenDimmer)*1.2)))
                 f.close()
                 wc = WaterControl()
                 if ((wc.angle == 0 and scenWaterFun == "waterOpen") or (wc.angle == 180 and scenWaterFun == "waterClose")):
-                    print "Updating WaterControl ", scenWaterFun 
+                    print "Updating WaterControl %s. Current angle=%d" % (scenWaterFun, wc.angle) 
                     threading.Thread(target=getattr(waterControl, scenWaterFun), args=(gcm, RegID, 100)).start()
                 else:
-                    print "Skip WaterControl, as it is already set to ", scenWaterFun
-
+                    #print "Skip WaterControl, as it is already set to %s. Angle=%d" % (scenWaterFun, wc.angle)
+                    pass
+                
                 #here we need to close all the valves except 'scenDirect' one
-                #pcHead = PowerControl(, GPIO.OUT,  GPIO.PUD_OFF)
-                #pcBody = PowerControl(, GPIO.OUT,  GPIO.PUD_OFF)
-                #pcTail = PowerControl(, GPIO.OUT,  GPIO.PUD_OFF)
-                #pcHead.PowerCtl(GPIO.HIGH if scenDirect==Head else GPIO.LOW)
-                #pcBody.PowerCtl(GPIO.HIGH if scenDirect==Body else GPIO.LOW)
-                #pcTail.PowerCtl(GPIO.HIGH if scenDirect==Tail else GPIO.LOW)
-
+                pcHead = PowerControl(12, GPIO.OUT,  GPIO.PUD_OFF)
+                pcBody = PowerControl(16, GPIO.OUT,  GPIO.PUD_OFF)
+                pcTail = PowerControl(20, GPIO.OUT,  GPIO.PUD_OFF)
+                pcHead.PowerCtl(GPIO.LOW if scenDirect=='Head' else GPIO.HIGH)
+                pcBody.PowerCtl(GPIO.LOW if scenDirect=='Body' else GPIO.HIGH)
+                pcTail.PowerCtl(GPIO.LOW if scenDirect=='Tail' else GPIO.HIGH)
                 for j in range(1, scenNum+1): #mark all previous scenarios inactive
-                    if ScenarioTempConfig[j-1][0] == 'Active':                    
-                        reconfigScenario(ScenarioToday, "temperature%s"%(j-1),
-                                         "%s;%s;%s;%s;%s;%s" % ("NotActive",
-                                                             ScenarioTempConfig[j-1][1], ScenarioTempConfig[j-1][2],
-                                                             ScenarioTempConfig[j-1][3], ScenarioTempConfig[j-1][4],
-                                                             ScenarioTempConfig[j-1][5]))
+                    if ScenarioTempConfig[j-1][0] == 'Active':
+                        print "Scenario %d to be inactivated" % (j-1)
+                        reconfigScenario(ScenarioToday, "temperature%s" % (j-1),
+                                         "%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
+                                                                ScenarioTempConfig[j-1][1], ScenarioTempConfig[j-1][2],
+                                                                ScenarioTempConfig[j-1][3], ScenarioTempConfig[j-1][4],
+                                                                ScenarioTempConfig[j-1][5], ScenarioTempConfig[j-1][6]))
+                if (liqLevel == GPIO.HIGH) or \
+                    ('TempGrowing' in exitCriterias and len(towerTempList) > 10 \
+                     and round(cur_temp[towerSensorIDX], 2) >= round(sum(towerTempList[-10:]) / 10, 2) + deltaTower) or \
+                    ('Time' in exitCriterias and scenTimeStart[scenNum] + datetime.timedelta(minutes=int(exitCriterias[1])) < datetime.datetime.now()): 
+                    print "Changing scenario %d %s Average=%d CurTemp10=%d Average+dt=%d" % \
+                        (j, exitCriterias, round(cur_temp[towerSensorIDX], 1),
+                         round(cur_temp[towerSensorIDX], 2), round(sum(towerTempList[-10:]) / 10, 2) + deltaTower)
+                    reconfigScenario(ScenarioToday, "temperature%s"%(j),
+                                     "%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
+                                                            ScenarioTempConfig[j][1], ScenarioTempConfig[j][2],
+                                                            ScenarioTempConfig[j][3], ScenarioTempConfig[j][4],
+                                                            ScenarioTempConfig[j][5], ScenarioTempConfig[j][6]))
+
+                break;
             scenNum+=1
 
         if stillAlarm or towerAlarm:
@@ -175,24 +202,20 @@ def brew_tempc(gcm):
         elif ((fixitTowerByPower.lower() == "true") or (fixitStillByPower.lower() == "true")):
             pc18.PowerCtl(GPIO.LOW)
             print "Turn ON Still diff = %s Tower diff = %s" % (cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg) 
-      
-        heat = pc18.PowerRead()
-        liqLevel = pc25.PowerRead()
-        cooler = pc17.PowerRead()
-        
+              
         if liqLevel == GPIO.HIGH:
             msgType = 'alarma'
 
         if cur_temp[coolerSensorIDX] > 50:
             msgType = 'alarma'
 
-	hadc = adc()
-	pressureVal = hadc.read(pressureSensorIDX)
+	#hadc = adc()
+	pressureVal = 0 #hadc.read(pressureSensorIDX)
 	            
         print time.asctime(), "Cur=",cur_temp, "AVG=", stillTempAvg, towerTempAvg, \
                                     "Diffs=", cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg, \
                                     "Limits=",abstempStill,abstempTower, \
-                                    "LiqLevel=", liqLevel, "pressure=", pressureVal, "MsgType=", msgType
+                                    "LiqLevel=", liqLevel, "pressure=", pressureVal, "MsgType=", msgType, "\n"
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                   #collapse_key' : msgType, \

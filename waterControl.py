@@ -52,7 +52,6 @@ class WaterControl():
             f.close()
         except:
             print "water control file empty. ignoring"
-        print "readWaterPosition ", waterVal
 	return waterVal
 
     def Open(self, percent):
