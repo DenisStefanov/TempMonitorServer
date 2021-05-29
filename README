@@ -1,0 +1,9 @@
+wget https://bootstrap.pypa.io/get-pip.py
+python get-pip.py
+
+sudo pip3 install python-daemon
+sudo pip3 install xmpppy
+sudo pip3 install urllib3
+sudo pip3 install ConfigParser
+sudo apt install monit
+./compile.sh
