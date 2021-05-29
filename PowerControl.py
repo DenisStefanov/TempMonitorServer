@@ -16,7 +16,7 @@ class PowerControl():
     def PowerRead(self):
         try:
             state = GPIO.input(self.num)
-        except Exception, e:
-            print e
+        except Exception as e:
+            print (e)
             return
         return state

@@ -33,14 +33,14 @@ class WaterControl():
     def __init__(self):
         self.pcOpen  = PowerControl(OpenGPIO, GPIO.OUT,  GPIO.PUD_OFF)
         self.pcClose = PowerControl(CloseGPIO, GPIO.OUT,  GPIO.PUD_OFF)
-	self.angle = self.readWaterPosition()
+        self.angle = self.readWaterPosition()
 
     def writeWaterPosition(self):
         try:
             f = open(WATER_FILE, 'w')
             f.write(str(self.angle))
             f.close()
-            print "Write water ", str(self.angle)
+            print ("Write water ", str(self.angle))
         except:
             raise
 
@@ -51,8 +51,8 @@ class WaterControl():
             waterVal = int(f.read())
             f.close()
         except:
-            print "water control file empty. ignoring"
-	return waterVal
+            print ("water control file empty. ignoring")
+        return waterVal
 
     def Open(self, percent):
         if percent > 0 and percent <= 100:
@@ -61,15 +61,15 @@ class WaterControl():
             self.pcOpen.PowerCtl(GPIO.LOW)
             time.sleep(cycleTimeOpen / 100 * percent)
             self.pcOpen.PowerCtl(GPIO.HIGH)
-	    self.angle  += int(1.80 * percent)
-            print "percent = ", percent
-            print "Open angle = ", self.angle
+            self.angle  += int(1.80 * percent)
+            print ("percent = ", percent)
+            print ("Open angle = ", self.angle)
             if self.angle > 180:
                 self.angle = 180
             
             self.writeWaterPosition()
         else:
-            print "Open: wrong paramenter percent ", percent
+            print ("Open: wrong paramenter percent ", percent)
 
 
     def Close(self, percent):
@@ -82,15 +82,15 @@ class WaterControl():
             
             self.angle  += int(1.80 * percent)
 
-            print "percent = ", percent
-            print "Close angle = ", self.angle
+            print ("percent = ", percent)
+            print ("Close angle = ", self.angle)
 
             if self.angle >= 360:
                 self.angle = 0
 
             self.writeWaterPosition()
-	else:
-            print "Close: wrong paramenter percent ", percent
+        else:
+            print ("Close: wrong paramenter percent ", percent)
 
 if __name__ == "__main__":
     op = sys.argv[1].lower() if len(sys.argv) > 1 else None

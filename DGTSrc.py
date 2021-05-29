@@ -17,7 +17,7 @@ class DGTSrc(object):
                 print out, "-------------", out.split()[0], out.split()[1]
                 cur_temp = [float(out.split()[0]), float(out.split()[1])]
                 return cur_temp
-        except Exception, e:
+        except Exception as e:
             print("Exception is caught [%s]" % (e))
             return ""
 

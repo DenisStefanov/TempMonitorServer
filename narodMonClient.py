@@ -33,5 +33,5 @@ try:
     data = sock.recv(1024)
     sock.close()
     print "Resp = ", data
-except socket.error, e:
+except socket.error as e:
     print('ERROR! Exception {}'.format(e))

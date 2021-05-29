@@ -9,7 +9,7 @@ class GPIOSrc(object):
         device_folders = glob.glob(base_dir + '28*')
     
         for i, folder in reversed(list(enumerate(device_folders))): 
-	    self.device_file.append(folder + '/w1_slave')
+            self.device_file.append(folder + '/w1_slave')
     
     def read_temp_raw(self, device_f):
         f = open(device_f, 'r')
@@ -32,7 +32,7 @@ class GPIOSrc(object):
                     temp_f = temp_c * 9.0 / 5.0 + 32.0
                     cur_temp.append(temp_c)
             return cur_temp
-        except Exception, e:
+        except Exception as e:
             print("Exception is caught [%s]" % (e))
             return ""
 

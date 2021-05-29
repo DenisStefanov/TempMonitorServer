@@ -1,12 +1,12 @@
 import os
 import sys, json, xmpp, random, string
-import ConfigParser
+import configparser as ConfigParser
 import time
-import urllib2
+import urllib3
 import threading
 import RPi.GPIO as GPIO
 from PowerControl import PowerControl
-import DropboxHandler
+#import DropboxHandler
 from WebcamHandler import WebcamHandler
 from waterControl import waterOpen, waterClose
 
@@ -39,14 +39,14 @@ def sendServerConfig(gcm, msg):
 
 #        self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60, \
 #                                  'data' : {'type' : 'Notify', 'note' : "Got Server Config"}})
-  print "Server config sent to Client - "
-  print {'type' : 'ServerConfig', \
+  print ("Server config sent to Client - ")
+  print ({'type' : 'ServerConfig', \
          'stillTempThreshold'   : config.get('ServerConfig', 'absolutestill'), \
          'stillToggle' : config.getboolean('ServerConfig', 'fixtempstill'), \
          'towerTempThreshold'   : config.get('ServerConfig', 'absolutetower'), \
          'towerToggle' : config.getboolean('ServerConfig', 'fixtemptower'), \
          'stillAutoToggle' : config.getboolean('ServerConfig', 'fixtempstillbypower'), \
-         'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')}    
+         'towerAutoToggle' : config.getboolean('ServerConfig', 'fixtemptowerbypower')})    
 
 class GCMXMPPClient(object):
   def __init__(self):
@@ -67,14 +67,15 @@ class GCMXMPPClient(object):
   def connect(self):
     url = 'http://ya.ru'
     connected = False
+    http = urllib3.PoolManager()
     while (not connected):
       try:
-        print "trying %s" % (url)
-        urllib2.urlopen(url, timeout=5)
+        print ("trying %s" % (url))
+        http.request('GET', url)
         connected = True
-        print "Connected."
-      except Exception, e:
-        print e
+        print ("Connected.")
+      except Exception as e:
+        print (e)
         time.sleep(1)
       finally:
         sys.stdout.flush()
@@ -85,18 +86,18 @@ class GCMXMPPClient(object):
     auth = self.client.auth(self.username, self.password)
         
     if not auth:
-      print 'Authentication failed!'
+      print ('Authentication failed!')
       sys.exit(1)
     
   def disconnectHandler(self):
     os.environ["GCMDisconnected"] = "True"
-    print "Disconnect handler. Set GCMDisconnected to True"
+    print ("Disconnect handler. Set GCMDisconnected to True")
     sys.exit(1)
 
   def processData(self, msg):
     data = msg.get('data', None)
     if data:
-      print "Received data %s" % (data)
+      print ("Received data %s" % (data))
 #      if data.get('message_type', None) == 'GetPicture':
 #        wch = WebcamHandler()
 #        [path, picture] = wch.CaptureImage()
@@ -108,7 +109,7 @@ class GCMXMPPClient(object):
       if data.get('message_type', None) == 'StoreRegid':
         regid = msg.get('from', None)
         if regid:
-          print "Got new REGID " + regid
+          print ("Got new REGID " + regid)
           reconfigRegId(regid)
           self.send({'to': msg.get('from', None), 'message_id': random_id(), "time_to_live" : 60,\
                        'data' : {'type' : 'Notify', 'note' : "Registration ID has been updated"}})
@@ -161,8 +162,8 @@ class GCMXMPPClient(object):
             threading.Thread(target=waterOpen, args=(self, msg.get('from', None), valOpen,)).start()
           elif valClose > 0:
             threading.Thread(target=waterClose, args=(self, msg.get('from', None), valClose,)).start()
-        except Exception, e:
-          print e
+        except Exception as e:
+          print (e)
 
       if data.get('message_type', None) == 'ReadDimmer':
         try:
@@ -189,13 +190,13 @@ class GCMXMPPClient(object):
         self.serverRunning = False
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                                   'data' : {'type' : 'Notify', 'note' : "Server stopped"}})
-        print "Stopping server"
+        print ("Stopping server")
 
       if data.get('message_type', None) == 'StartServer':
         self.serverRunning = True
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60,\
                                   'data' : {'type' : 'Notify', 'note' : "Server started"}})
-        print "Starting server"
+        print ("Starting server")
 
       if data.get('message_type', None) == 'ConfigServerGet':
         sendServerConfig(self, msg)
@@ -206,12 +207,12 @@ class GCMXMPPClient(object):
         for key, value in data.items():
           if (key != "message_type"):
             config.set(data.get('message_type', None), key, value)
-            print "set " + data.get('message_type', None) , key, value
+            print ("set " + data.get('message_type', None) , key, value)
         with open(CONFIG_FILE, 'wb') as configfile:
           config.write(configfile)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60, \
                                   'data' : {'type' : 'Notify', 'note' : "Server config has been updated"}})
-        print "Server reconfigured"
+        print ("Server reconfigured")
         sendServerConfig(self, msg)
 
   def message_callback(self, session, message):
