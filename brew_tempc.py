@@ -4,6 +4,7 @@ import time, threading
 import datetime
 import configparser as ConfigParser
 import daemon
+from daemon import pidfile
 import random, string
 
 import RPi.GPIO as GPIO
@@ -55,7 +56,7 @@ def brew_tempc(gcm):
     pressureSensorIDX = int( config.get('ServerConfig', 'pressuresensoridx'))
     RegID = config.get('Common', 'regid')
 
-    print ("Thread started")
+    #print ("Thread started")
     if len(RegID) == 0:
         print ("GCM Reg ID not found")
         sys.exit(1)
@@ -74,7 +75,7 @@ def brew_tempc(gcm):
       threading.Timer(updInterval, brew_tempc, [gcm]).start()
     else:
       print ("DISCONNECTED, NOT Reconnecting. In monit we trust")
-      os.system("%s %s %s", ("cp ", "/var/log/tempmon.log", "/var/log/tempmon.log_" + datetime.datetime.now().strftime("%d%m%Y%H%M%S")))
+      os.system("%s %s %s" % ("cp ", "/var/log/tempmon.log", "/var/log/tempmon.log_" + datetime.datetime.now().strftime("%d%m%Y%H%M%S")))
       sys.exit(1)
 
     if gcm.serverRunning:
@@ -239,24 +240,24 @@ if __name__ == "__main__":
 
   if sys.argv[1] == 'start':
     os.environ["GCMDisconnected"] = "False"
-
-    os.system("sudo killall pwmcontrol")
+    #os.system("sudo killall pwmcontrol")
+    os.system("/home/pi/TempMonitorServer/pwmcontrol &")
 
     for gpio in (17, 18, 27, 22):
-      pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
-      pc.PowerCtl(GPIO.HIGH)
-      print ("set gpio to high", gpio)
-
-    os.system(os.getcwd() + "/TempMonitorServer/pwmcontrol &")
+        pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
+        pc.PowerCtl(GPIO.HIGH)
+        print ("set gpio to high", gpio)
 
     flog = open("/var/log/tempmon.log", "w")
     ferr = open("/var/log/tempmon.err", "w")
-    with daemon.DaemonContext(working_directory = "/home/pi/TempMonitorServer/", stdout = flog, stderr = ferr):
+    with daemon.DaemonContext(working_directory = "/home/pi/TempMonitorServer/",
+                              pidfile = pidfile.TimeoutPIDLockFile('/var/run/tempmon.pid'),
+                              stdout = flog, stderr = ferr):
         gcm = GCMXMPPClient()
         brew_tempc(gcm)
     
   if sys.argv[1] == 'stop':
     os.environ["GCMDisconnected"] = "True"
     os.system("sudo killall pwmcontrol")
-    os.system("ps aux | grep ADCRead | grep -v 'grep' | awk '{print $2}' | xargs kill")
+    os.system("sudo killall python3")
       
