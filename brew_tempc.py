@@ -31,7 +31,7 @@ def reconfigScenario(scenario, scenid, val):
   config = ConfigParser.RawConfigParser()
   config.read(CONFIG_FILE)
   config.set(scenario, scenid, val)
-  with open(CONFIG_FILE, 'wb') as configfile:
+  with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)
 
 def brew_tempc(gcm):
@@ -75,7 +75,6 @@ def brew_tempc(gcm):
       threading.Timer(updInterval, brew_tempc, [gcm]).start()
     else:
       print ("DISCONNECTED, NOT Reconnecting. In monit we trust")
-      os.system("%s %s %s" % ("cp ", "/var/log/tempmon.log", "/var/log/tempmon.log_" + datetime.datetime.now().strftime("%d%m%Y%H%M%S")))
       sys.exit(1)
 
     if gcm.serverRunning:
@@ -109,7 +108,7 @@ def brew_tempc(gcm):
         heat   = pc18.PowerRead()
         liqLevel = pc25.PowerRead()
 
-        if cur_temp[coolerSensorIDX] > 45:
+        if cur_temp[coolerSensorIDX] > 45 and heat == GPIO.LOW:
             pc17.PowerCtl(GPIO.LOW)
         if cur_temp[coolerSensorIDX] < 35:
             pc17.PowerCtl(GPIO.HIGH)
@@ -176,9 +175,9 @@ def brew_tempc(gcm):
                         print ("Scenario %d to be inactivated" % (j-1))
                         reconfigScenario(ScenarioToday, "temperature%s" % (j-1),
                                          "%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
-                                                                ScenarioTempConfig[j-1][1], ScenarioTempConfig[j-1][2],
-                                                                ScenarioTempConfig[j-1][3], ScenarioTempConfig[j-1][4],
-                                                                ScenarioTempConfig[j-1][5], ScenarioTempConfig[j-1][6]))
+                                                                   ScenarioTempConfig[j-1][1], ScenarioTempConfig[j-1][2],
+                                                                   ScenarioTempConfig[j-1][3], ScenarioTempConfig[j-1][4],
+                                                                   ScenarioTempConfig[j-1][5], ScenarioTempConfig[j-1][6]))
                 if (liqLevel == GPIO.HIGH) or \
                     ('TempGrowing' in exitCriterias and len(towerTempList) > 10 \
                      and round(cur_temp[towerSensorIDX], 2) >= round(sum(towerTempList[-10:]) / 10, 2) + deltaTower) or \
@@ -215,9 +214,11 @@ def brew_tempc(gcm):
         pressureVal = 0 #hadc.read(pressureSensorIDX)
 	            
         print (time.asctime(), "Cur=",cur_temp, "AVG=", stillTempAvg, towerTempAvg, \
-                                    "Diffs=", cur_temp[stillSensorIDX] - stillTempAvg, cur_temp[towerSensorIDX] - towerTempAvg, \
-                                    "Limits=",abstempStill,abstempTower, \
-                                    "LiqLevel=", liqLevel, "pressure=", pressureVal, "MsgType=", msgType, "\n")
+               "Diffs=", \
+               round(cur_temp[stillSensorIDX] - stillTempAvg, 3),\
+               round(cur_temp[towerSensorIDX] - towerTempAvg, 3),\
+               "Limits=",abstempStill,abstempTower, \
+               "LiqLevel=", liqLevel, "pressure=", pressureVal, "MsgType=", msgType, "\n")
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                   #collapse_key' : msgType, \
@@ -243,10 +244,13 @@ if __name__ == "__main__":
     #os.system("sudo killall pwmcontrol")
     os.system("/home/pi/TempMonitorServer/pwmcontrol &")
 
-    for gpio in (17, 18, 27, 22):
+    for gpio in (17, 18, 27, 22, 12, 16, 20, 21):
         pc = PowerControl(gpio, GPIO.OUT,  GPIO.PUD_OFF)
         pc.PowerCtl(GPIO.HIGH)
         print ("set gpio to high", gpio)
+
+    os.system("%s %s %s" % ("cp ", "/var/log/tempmon.log", "/var/log/tempmon.log_" + datetime.datetime.now().strftime("%d%m%Y%H%M%S")))
+    os.system("%s %s %s" % ("cp ", "/var/log/tempmon.err", "/var/log/tempmon.err_" + datetime.datetime.now().strftime("%d%m%Y%H%M%S")))
 
     flog = open("/var/log/tempmon.log", "w")
     ferr = open("/var/log/tempmon.err", "w")

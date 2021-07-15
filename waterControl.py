@@ -6,8 +6,8 @@ import RPi.GPIO as GPIO
 
 CloseGPIO = 27
 OpenGPIO  = 22
-cycleTimeClose = 28.5
-cycleTimeOpen = 26.5
+cycleTimeClose = 30 #28.5
+cycleTimeOpen = 30 #26.5
 WATER_FILE = os.getcwd() + "/TempMonitorServer/waterval.txt"
 
 def random_id():
@@ -17,15 +17,25 @@ def random_id():
 
 def waterOpen(gcm, to, percent):
   wc = WaterControl()
-  if wc.pcOpen.PowerRead() == GPIO.HIGH: #not currently running
-    wc.Open(percent)
+  if wc.pcClose.PowerRead() == GPIO.LOW: #currently running
+    print ("Water Close is currently in progress, will not call Open")
+    return
+  if wc.pcOpen.PowerRead() == GPIO.LOW: #currently running
+    print ("Water Open is currently in progress, will not call Open")
+    return
+  wc.Open(percent)
   gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
 def waterClose(gcm, to, percent):
   wc = WaterControl()
-  if wc.pcClose.PowerRead() == GPIO.HIGH: #not currently running
-    wc.Close(percent)
+  if wc.pcOpen.PowerRead() == GPIO.LOW: #currently running
+    print ("Water Open is currently in progress, will not call Close")
+    return
+  if wc.pcClose.PowerRead() == GPIO.LOW: #currently running
+    print ("Water Close is currently in progress, will not call Close")
+    return
+  wc.Close(percent)
   gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
             'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
@@ -62,11 +72,10 @@ class WaterControl():
             time.sleep(cycleTimeOpen / 100 * percent)
             self.pcOpen.PowerCtl(GPIO.HIGH)
             self.angle  += int(1.80 * percent)
-            print ("percent = ", percent)
-            print ("Open angle = ", self.angle)
+            print ("percent = ", percent, "Open angle = ", self.angle)
             if self.angle > 180:
                 self.angle = 180
-            
+
             self.writeWaterPosition()
         else:
             print ("Open: wrong paramenter percent ", percent)
@@ -78,13 +87,9 @@ class WaterControl():
             time.sleep(0.5)
             self.pcClose.PowerCtl(GPIO.LOW)
             time.sleep(cycleTimeClose / 100 * percent)
-            self.pcClose.PowerCtl(GPIO.HIGH)
-            
+            self.pcClose.PowerCtl(GPIO.HIGH)          
             self.angle  += int(1.80 * percent)
-
-            print ("percent = ", percent)
-            print ("Close angle = ", self.angle)
-
+            print ("percent = ", percent, "Close angle = ", self.angle)
             if self.angle >= 360:
                 self.angle = 0
 

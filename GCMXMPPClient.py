@@ -22,7 +22,7 @@ def reconfigRegId(regid):
   config = ConfigParser.RawConfigParser()
   config.read(CONFIG_FILE)
   config.set("Common", "regid", regid)
-  with open(CONFIG_FILE, 'wb') as configfile:
+  with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)
 
 def sendServerConfig(gcm, msg):
@@ -79,8 +79,9 @@ class GCMXMPPClient(object):
         time.sleep(1)
       finally:
         sys.stdout.flush()
-        
+
     self.client = xmpp.Client(self.client_url, debug=[])
+    #self.client = xmpp.Client(self.client_url, debug=['socket'])
     #self.client = xmpp.Client(self.client_url)
     self.client.connect(server=(self.server,self.port), secure=1, use_srv=False)
     auth = self.client.auth(self.username, self.password)
@@ -208,7 +209,7 @@ class GCMXMPPClient(object):
           if (key != "message_type"):
             config.set(data.get('message_type', None), key, value)
             print ("set " + data.get('message_type', None) , key, value)
-        with open(CONFIG_FILE, 'wb') as configfile:
+        with open(CONFIG_FILE, 'w') as configfile:
           config.write(configfile)
         self.send({'to': msg.get('from', None), 'message_id':  random_id(), "time_to_live" : 60, \
                                   'data' : {'type' : 'Notify', 'note' : "Server config has been updated"}})
