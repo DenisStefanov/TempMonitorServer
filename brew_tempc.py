@@ -117,7 +117,7 @@ def brew_tempc(gcm):
         dimval = 4;
         try:
             with open(DIMMER_FILE, "r") as f:
-                dimval = int(f.read())
+                dimval = float(f.read())
         except:
             pass
 
@@ -140,13 +140,12 @@ def brew_tempc(gcm):
                 scenDimmerCorr = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[1]
                 scenDirect = ScenarioTempConfig[scenNum][6]
 
-                #heater power calibrater at 20deg or foom temperature. here we need to add correction. 1% for each 5deg
-                if int(scenDimmer) and scenDimmerCorr == "Rel":
-                    scenDimmer = int(scenDimmer) - (float(cur_temp[roomSensorIDX] - 20) / 5.0)
-                    if scenDimmer > 100: scenDimmer = 100
-                    if scenDimmer < 0: scenDimmer = 0
-                print (ScenarioTempConfig[scenNum], "DimmerCorrected=", scenDimmer)
+                #heater power calibrated at 20deg or foom temperature. here we need to add correction. 1% for each 5deg
+                if float(scenDimmer) > 0 and float(scenDimmer) < 100 and scenDimmerCorr == "Rel":
+                    scenDimmer = float(scenDimmer) - (float(cur_temp[roomSensorIDX] - 20) / 5.0)
+                print (ScenarioTempConfig[scenNum], "DimmerCorrected=", round(float(scenDimmer),2))
             except Exception as e:
+                print (e)
                 break
 
             #print cur_temp[stillSensorIDX], cur_temp[towerSensorIDX], scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax
@@ -170,7 +169,7 @@ def brew_tempc(gcm):
                      scenTempTowerMin, cur_temp[towerSensorIDX], scenTempTowerMax, scenDirect))
                 
                 f = open(DIMMER_FILE, "w")
-                f.write(str(int(int(scenDimmer)*1.2)))
+                f.write(str(float(scenDimmer)*1.2))
                 f.close()
                 wc = WaterControl()
                 if ((wc.angle == 0 and scenWaterFun == "waterOpen") or (wc.angle == 180 and scenWaterFun == "waterClose")):

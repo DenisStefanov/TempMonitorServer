@@ -1,13 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>     /* atof */
 #include <sys/time.h>
 #include <errno.h>
+#include <string.h>
 #include <wiringPi.h>
 
 // Which GPIO pin we're using
 #define ZCDPin 5
 #define PWMPin 4
 #define DIM_FILE "/home/pi/TempMonitorServer/dimval.txt"
-volatile int dimming;
+volatile double dimming;
 
 //struct timeval tm1, tm2;
 
@@ -27,21 +29,21 @@ void ZCDHandle(void) {
   */
   // Firing angle calculation :: 50Hz-> 10ms (1/2 Cycle)
   // (10000us - 10us) / 128 = 75 (Approx)
-  int dimtime = (75*dimming);
+  int dimtime = (int)(75*dimming);
   delayMicroseconds(dimtime);    // Off cycle
   digitalWrite(PWMPin, HIGH);   // triac firing
   delayMicroseconds(20);         // triac On propogation delay
   digitalWrite(PWMPin, LOW);    // triac Off
   
-  //printf("ZCDHandle Diff=%d time=%d diming=%d\n", timediff, dimtime, dimming);
+  //printf("ZCDHandle time=%d diming=%d\n", dimtime, dimming);
   
 }
 
-int readDim()
+double readDim()
 {
-  char numstr[4];
+  char numstr[6];
   FILE *fp;
-  int num;
+  double num;
 
 
   fp = fopen(DIM_FILE, "r");
@@ -54,7 +56,7 @@ int readDim()
 
 
   fgets(numstr, sizeof(numstr), fp);
-  num = atoi(numstr);
+  num = atof(numstr);
   
   fclose(fp);
   return num;
@@ -78,7 +80,8 @@ int main(void) {
 
   for (;;) {
     dimming = 120 - readDim();
-  //  for(dimming=115; dimming>=0; dimming--)
+  // printf("dimming=%f readDim=%f\n", dimming, readDim());
+  // for(dimming=115; dimming>=0; dimming--)
     delay(1000);
   }
   
