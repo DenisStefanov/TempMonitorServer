@@ -169,7 +169,7 @@ def brew_tempc(gcm):
                      scenTempTowerMin, cur_temp[towerSensorIDX], scenTempTowerMax, scenDirect))
                 
                 f = open(DIMMER_FILE, "w")
-                f.write(str(float(scenDimmer)*1.2))
+                f.write(str(round((float(scenDimmer)*1.2),2)))
                 f.close()
                 wc = WaterControl()
                 if ((wc.angle == 0 and scenWaterFun == "waterOpen") or (wc.angle == 180 and scenWaterFun == "waterClose")):
