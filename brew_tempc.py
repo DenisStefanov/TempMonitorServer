@@ -85,13 +85,8 @@ def brew_tempc(gcm):
         stillTempList.append(cur_temp[stillSensorIDX])
         towerTempList.append(cur_temp[towerSensorIDX])
       
-        #if len(stillTempList) >= 10:
-        #  stillTempList.pop(0)
-        #if len(towerTempList) >= 10:
-        #  towerTempList.pop(0)
-      
-        stillTempAvg = round(sum(stillTempList[-10:]) / 10, 2)
-        towerTempAvg = round(sum(towerTempList[-10:]) / 10, 2)
+        stillTempAvg = round(sum(stillTempList[-10:]) / len(stillTempList[-10:]), 2)
+        towerTempAvg = round(sum(towerTempList[-10:]) / len(towerTempList[-10:]), 2)
         msgType = "upd"
         
         stillAlarm = fixitStill.lower() == "true" and \

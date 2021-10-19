@@ -65,20 +65,20 @@ class GCMXMPPClient(object):
     self.client.RegisterDisconnectHandler(self.disconnectHandler)
 
   def connect(self):
-    url = 'http://ya.ru'
-    connected = False
-    http = urllib3.PoolManager()
-    while (not connected):
-      try:
-        print ("trying %s" % (url))
-        http.request('GET', url)
-        connected = True
-        print ("Connected.")
-      except Exception as e:
-        print (e)
-        time.sleep(1)
-      finally:
-        sys.stdout.flush()
+    #url = 'http://ya.ru'
+    #connected = False
+    #http = urllib3.PoolManager()
+    #while (not connected):
+    #  try:
+    #    print ("trying %s" % (url))
+    #    http.request('GET', url)
+    #    connected = True
+    #    print ("Connected.")
+    #  except Exception as e:
+    #    print (e)
+    #    time.sleep(1)
+    #  finally:
+    #    sys.stdout.flush()
 
     self.client = xmpp.Client(self.client_url, debug=[])
     #self.client = xmpp.Client(self.client_url, debug=['socket'])
@@ -88,7 +88,7 @@ class GCMXMPPClient(object):
         
     if not auth:
       print ('Authentication failed!')
-      sys.exit(1)
+      #sys.exit(1)
     
   def disconnectHandler(self):
     os.environ["GCMDisconnected"] = "True"
