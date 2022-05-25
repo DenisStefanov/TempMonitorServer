@@ -57,6 +57,8 @@ def brew_tempc(gcm):
     pressureSensorIDX = int( config.get('ServerConfig', 'pressuresensoridx'))
     RegID = config.get('Common', 'regid')
 
+    #os.system("clear")
+
     #print ("Thread started")
     if len(RegID) == 0:
         print ("GCM Reg ID not found")
@@ -135,9 +137,9 @@ def brew_tempc(gcm):
                 scenDimmerCorr = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[1]
                 scenDirect = ScenarioTempConfig[scenNum][6]
 
-                #heater power calibrated at 20deg or foom temperature. here we need to add correction. 1% for each 5deg
+                #heater power calibrated at 20deg or room temperature. here we need to add correction. 1% for each 5deg
                 if float(scenDimmer) > 0 and float(scenDimmer) < 100 and scenDimmerCorr == "Rel":
-                    scenDimmer = float(scenDimmer) - (float(cur_temp[roomSensorIDX] - 20) / 5.0)
+                    scenDimmer = float(scenDimmer) - (float(cur_temp[roomSensorIDX] - 20) / 10.0)
                 print (ScenarioTempConfig[scenNum], "DimmerCorrected=", round(float(scenDimmer),2))
             except Exception as e:
                 print (e)
@@ -223,12 +225,14 @@ def brew_tempc(gcm):
 	#hadc = adc()
         pressureVal = 0 #hadc.read(pressureSensorIDX)
 	            
-        print (time.asctime(), "Cur=",cur_temp, "AVG=", stillTempAvg, towerTempAvg, \
-               "Diffs=", \
-               round(cur_temp[stillSensorIDX] - stillTempAvg, 3),\
-               round(cur_temp[towerSensorIDX] - towerTempAvg, 3),\
-               "Limits=",abstempStill,abstempTower, \
-               "LiqLevel=", liqLevel, "MsgType=", msgType, "\n")
+        print (time.asctime(), "\nINSTANT:\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\tCooler=%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\tStill:%s\n\tTower:%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nLiqLevel=%s Type=%s\n" % 
+               (cur_temp[stillSensorIDX], cur_temp[towerSensorIDX],
+                cur_temp[roomSensorIDX], cur_temp[coolerSensorIDX],
+                stillTempAvg, towerTempAvg,
+                round(cur_temp[stillSensorIDX] - stillTempAvg, 3),
+                round(cur_temp[towerSensorIDX] - towerTempAvg, 3),
+                abstempStill,abstempTower,
+                liqLevel, msgType))
       
         gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                   #collapse_key' : msgType, \
