@@ -91,9 +91,9 @@ class GCMXMPPClient(object):
       #sys.exit(1)
     
   def disconnectHandler(self):
-    os.environ["GCMDisconnected"] = "True"
-    print ("Disconnect handler. Set GCMDisconnected to True")
-    sys.exit(1)
+    #os.environ["GCMDisconnected"] = "True"
+    print ("Disconnect handler. IGNORING. Not Set GCMDisconnected to True")
+    #sys.exit(1)
 
   def processData(self, msg):
     data = msg.get('data', None)

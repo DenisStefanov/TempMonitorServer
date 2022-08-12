@@ -24,8 +24,9 @@ def waterOpen(gcm, to, percent):
     print ("Water Open is currently in progress, will not call Open")
     return
   wc.Open(percent)
-  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-            'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
+  if gcm:
+      gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+                'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
 def waterClose(gcm, to, percent):
   wc = WaterControl()
@@ -36,8 +37,9 @@ def waterClose(gcm, to, percent):
     print ("Water Close is currently in progress, will not call Close")
     return
   wc.Close(percent)
-  gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
-            'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
+  if gcm:
+      gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
+                'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
 
 class WaterControl():
     def __init__(self):
