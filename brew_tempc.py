@@ -43,7 +43,7 @@ def brew_tempc(gcm):
     tempSource = config.get('Common', 'sensors')
     updInterval = int( config.get('Common', 'updateinterval'))
     ScenarioToday = config.get('Common', 'ScenarioToday')
-    fakeTempData = [float(i) for i in config.get('Common', 'fakeTempData').split(',')[:3]]
+    fakeTempData = [float(i) for i in config.get('Common', 'fakeTempData').split(',')[:-1]]
     fixitStill = config.get('ServerConfig', 'fixtempstill')
     abstempStill = float(config.get('ServerConfig', 'absolutestill'))
     deltaStill = float(config.get('ServerConfig', 'deltastill'))
@@ -91,7 +91,7 @@ def brew_tempc(gcm):
       sys.exit(1)
 
     if (gcm and gcm.serverRunning) or not gcm:
-      res = tempSource.getData() if config.get('Common', 'fakeTempData').split(',')[3]!="Active" else fakeTempData
+      res = tempSource.getData() if config.get('Common', 'fakeTempData').split(',')[-1]!="Active" else fakeTempData
       if res:
         cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1, res[2] if len(res) > 2 else -1, res[3] if len(res) > 3 else -1]
         stillTempList.append(cur_temp[stillSensorIDX])
@@ -155,7 +155,7 @@ def brew_tempc(gcm):
                 print (e)
                 break
 
-            #print cur_temp[stillSensorIDX], cur_temp[towerSensorIDX], scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax
+            #print (cur_temp[stillSensorIDX], cur_temp[towerSensorIDX], scenTempStillMin, scenTempStillMax, scenTempTowerMin, scenTempTowerMax)
             if scenActive:
                 if not scenTimeStartUnsaved:
                     scenTimeStartUnsaved = datetime.datetime.now()
@@ -263,9 +263,9 @@ def brew_tempc(gcm):
             timeLeft = scenTimeStart + datetime.timedelta(minutes=int(exitCriterias[2])) - datetime.datetime.now() if 'Time' in exitCriterias else "N/A"
 
         if not forecastedFinish and timeLeft and timeLeft != "N/A":
-            forecastedFinish = datetime.datetime.now() + datetime.timedelta(minutes=int(timeLeft))
+            forecastedFinish = datetime.datetime.now() + timeLeft #datetime.timedelta(minutes=int(timeLeft))
             
-        print (time.asctime(), "\nINSTANT:\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s\nForecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
+        print (time.asctime(), "\nINSTANT:\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s, Forecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
                (cur_temp[stillSensorIDX], cur_temp[towerSensorIDX],
                 cur_temp[roomSensorIDX],
                 clrCooler, cur_temp[coolerSensorIDX], clrEnd,

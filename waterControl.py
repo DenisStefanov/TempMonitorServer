@@ -6,8 +6,8 @@ import RPi.GPIO as GPIO
 
 CloseGPIO = 27
 OpenGPIO  = 22
-cycleTimeClose = 30 #28.5
-cycleTimeOpen = 30 #26.5
+cycleTimeClose = 30.0 #28.5
+cycleTimeOpen = 30.0 #26.5
 WATER_FILE = os.getcwd() + "/TempMonitorServer/waterval.txt"
 
 def random_id():
@@ -23,7 +23,7 @@ def waterOpen(gcm, to, percent):
   if wc.pcOpen.PowerRead() == GPIO.LOW: #currently running
     print ("Water Open is currently in progress, will not call Open")
     return
-  wc.Open(percent)
+  wc.Open(float(percent))
   if gcm:
       gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
                 'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
@@ -36,7 +36,7 @@ def waterClose(gcm, to, percent):
   if wc.pcClose.PowerRead() == GPIO.LOW: #currently running
     print ("Water Close is currently in progress, will not call Close")
     return
-  wc.Close(percent)
+  wc.Close(float(percent))
   if gcm:
       gcm.send({'to': to, 'message_id':  random_id(), "time_to_live" : 60,\
                 'data' : {'type' : 'NotifyWater', 'note' : str(wc.angle)}})
@@ -52,7 +52,7 @@ class WaterControl():
             f = open(WATER_FILE, 'w')
             f.write(str(self.angle))
             f.close()
-            print ("Write water ", str(self.angle))
+            print ("Write water ", str(float(self.angle)))
         except:
             raise
 
@@ -60,7 +60,7 @@ class WaterControl():
         waterVal = 0
         try:
             f = open(WATER_FILE, 'r')
-            waterVal = int(f.read())
+            waterVal = float(f.read())
             f.close()
         except:
             print ("water control file empty. ignoring")
@@ -105,8 +105,8 @@ if __name__ == "__main__":
 
     if op == 'open':
         wc = WaterControl()
-        wc.Open(partMove)
+        wc.Open(float(partMove))
   
     if op == 'close':
         wc = WaterControl()
-        wc.Close(partMove)
+        wc.Close(float(partMove))
