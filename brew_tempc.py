@@ -216,6 +216,8 @@ def brew_tempc(gcm):
                                                                ScenarioTempConfig[scenNum][3], ScenarioTempConfig[scenNum][4],
                                                                ScenarioTempConfig[scenNum][5], ScenarioTempConfig[scenNum][6]))
                     scenTimeStartUnsaved = None
+                    stillTempList = [] #doubtful
+                    towerTempList = [] #
                 break;
             scenNum+=1
 
@@ -229,7 +231,7 @@ def brew_tempc(gcm):
             timeLeft = int((tempLeftTillFinish / tempChangeRate)) if tempChangeRate > 0 else None 
             forecastedFinish = datetime.datetime.now() + datetime.timedelta(minutes=timeLeft) if timeLeft else None
             print ("tempDiffSncBegin=%s timeDiffSncBegin=%s tempChangeRate=%s, tempLeft=%s, timeLeft=%s forecastedFinish=%s scenTimeStartUnsaved=%s" %
-                (tempDiffSinceBegin, timeDiffSinceBegin, tempChangeRate, tempLeftTillFinish, timeLeft, forecastedFinish, scenTimeStartUnsaved))
+                (round(tempDiffSinceBegin, 2), timeDiffSinceBegin, round(tempChangeRate, 2), round(tempLeftTillFinish, 2), timeLeft, forecastedFinish, scenTimeStartUnsaved))
 
         if stillAlarm or towerAlarm:
             if ((towerAlarm and fixitTowerByPower.lower() == "true") or (stillAlarm and fixitStillByPower.lower() == "true")):
