@@ -146,7 +146,9 @@ def brew_tempc(gcm):
                 scenDimmer = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[0]
                 scenDimmerCorr = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[1]
                 scenDirect = ScenarioTempConfig[scenNum][6]
-
+                smsNotifyPh  = ScenarioTempConfig[scenNum][7].split(',')[0]
+                smsNotifyMsg = ScenarioTempConfig[scenNum][7].split(',')[1]
+                
                 #heater power calibrated at 20deg or room temperature. here we need to add correction. 1% for each 5deg
                 if float(scenDimmer) > 0 and float(scenDimmer) < 100 and scenDimmerCorr == "Rel":
                     scenDimmer = float(scenDimmer) - (float(cur_temp[roomSensorIDX] - 20) / 10.0)
@@ -167,10 +169,10 @@ def brew_tempc(gcm):
                         exitCriterias[1] = scenTimeStart.strftime("%d%m%Y%H%M%S")
                         print ("Changing scenario %d %s Added start time." % (scenNum, exitCriterias))
                         reconfigScenario(ScenarioToday, "temperature%s" % (scenNum),
-                                         "%s;%s;%s;%s;%s;%s;%s" % ("Active", ScenarioTempConfig[scenNum][1], ScenarioTempConfig[scenNum][2],
+                                         "%s;%s;%s;%s;%s;%s;%s;%s" % ("Active", ScenarioTempConfig[scenNum][1], ScenarioTempConfig[scenNum][2],
                                                                    "ExitCr=%s,%s,%s" % (exitCriterias[0], exitCriterias[1], exitCriterias[2]),
                                                                    ScenarioTempConfig[scenNum][4], ScenarioTempConfig[scenNum][5],
-                                                                   ScenarioTempConfig[scenNum][6]))
+                                                                   ScenarioTempConfig[scenNum][6], ScenarioTempConfig[scenNum][7]))
                     print ("Time in ExitCriterias. TimeStart = %s TimePassed = %s TimeLeft = %s" % (scenTimeStart, datetime.datetime.now() - scenTimeStart,
                      (scenTimeStart + datetime.timedelta(minutes=int(exitCriterias[2]))) - datetime.datetime.now()))
                 print ("Run scenario #%s. %s <%s> %s; %s <%s> %s direct = %s Dimmer = %s" % \
@@ -199,39 +201,43 @@ def brew_tempc(gcm):
                     if ScenarioTempConfig[j-1][0] == 'Active':
                         print ("Scenario %d to be inactivated" % (j-1))
                         reconfigScenario(ScenarioToday, "temperature%s" % (j-1),
-                                         "%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
+                                         "%s;%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
                                                                    ScenarioTempConfig[j-1][1], ScenarioTempConfig[j-1][2],
                                                                    ScenarioTempConfig[j-1][3], ScenarioTempConfig[j-1][4],
-                                                                   ScenarioTempConfig[j-1][5], ScenarioTempConfig[j-1][6]))
+                                                                   ScenarioTempConfig[j-1][5], ScenarioTempConfig[j-1][6],
+                                                                   ScenarioTempConfig[j-1][7]))
                 if (liqLevel == GPIO.HIGH) or \
                    ('TempGrowing' in exitCriterias and cur_temp[towerSensorIDX] > towerTempAvg + float(exitCriterias[1])) or \
                    ('Time' in exitCriterias and scenTimeStart + datetime.timedelta(minutes=int(exitCriterias[2])) < datetime.datetime.now()) or \
                    (cur_temp[stillSensorIDX] > scenTempStillMax and scenTempStillMax != -99) or \
                    (cur_temp[towerSensorIDX] > scenTempTowerMax and scenTempTowerMax != -99):
-                    print ("Changing scenario %d %s CurTempTower=%f Average=%f" % (scenNum, exitCriterias,
+                    print ("Changing scenario %d %s CurTempTower=%d Average=%d" % (scenNum, exitCriterias,
                                                                                    round(cur_temp[towerSensorIDX],2), round(towerTempAvg,2)))
                     reconfigScenario(ScenarioToday, "temperature%s" % (scenNum),
-                                     "%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
+                                     "%s;%s;%s;%s;%s;%s;%s;%s" % ("NotActive",
                                                                ScenarioTempConfig[scenNum][1], ScenarioTempConfig[scenNum][2],
                                                                ScenarioTempConfig[scenNum][3], ScenarioTempConfig[scenNum][4],
-                                                               ScenarioTempConfig[scenNum][5], ScenarioTempConfig[scenNum][6]))
+                                                               ScenarioTempConfig[scenNum][5], ScenarioTempConfig[scenNum][6],
+                                                               ScenarioTempConfig[scenNum][7]))
                     scenTimeStartUnsaved = None
                     stillTempList = [] #doubtful
                     towerTempList = [] #
+                    os.system("/home/pi/TempMonitorServer/smssend.sh %s '%s'" % (smsNotifyPh, smsNotifyMsg))
                 break;
             scenNum+=1
 
         timeLeft = None
         forecastedFinish = None
+        tempChangeRate   = None
         if scenTempStillMax != -99 and len(stillTempList) > 60: #can do a forecast for completion
             tempDiffSinceBegin = stillTempList[-1] - stillTempList[0]
             timeDiffSinceBegin = datetime.datetime.now() - scenTimeStartUnsaved
-            tempChangeRate = tempDiffSinceBegin / int(timeDiffSinceBegin.total_seconds()/60)
+            tempChangeRate = tempDiffSinceBegin / (timeDiffSinceBegin.total_seconds()/60)
             tempLeftTillFinish = scenTempStillMax - cur_temp[stillSensorIDX]
             timeLeft = int((tempLeftTillFinish / tempChangeRate)) if tempChangeRate > 0 else None 
             forecastedFinish = datetime.datetime.now() + datetime.timedelta(minutes=timeLeft) if timeLeft else None
-            print ("tempDiffSncBegin=%s timeDiffSncBegin=%s tempChangeRate=%s, tempLeft=%s, timeLeft=%s forecastedFinish=%s scenTimeStartUnsaved=%s" %
-                (round(tempDiffSinceBegin, 2), timeDiffSinceBegin, round(tempChangeRate, 2), round(tempLeftTillFinish, 2), timeLeft, forecastedFinish, scenTimeStartUnsaved))
+            #print ("tempDiffSncBegin=%s timeDiffSncBegin=%s tempChangeRate=%s, tempLeft=%s, timeLeft=%s forecastedFinish=%s scenTimeStartUnsaved=%s" %
+            #    (round(tempDiffSinceBegin, 2), timeDiffSinceBegin, round(tempChangeRate, 2), round(tempLeftTillFinish, 2), timeLeft, forecastedFinish, scenTimeStartUnsaved))
 
         if stillAlarm or towerAlarm:
             if ((towerAlarm and fixitTowerByPower.lower() == "true") or (stillAlarm and fixitStillByPower.lower() == "true")):
@@ -267,8 +273,10 @@ def brew_tempc(gcm):
         if not forecastedFinish and timeLeft and timeLeft != "N/A":
             forecastedFinish = datetime.datetime.now() + timeLeft #datetime.timedelta(minutes=int(timeLeft))
             
-        print (time.asctime(), "\nINSTANT:\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s, Forecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
-               (cur_temp[stillSensorIDX], cur_temp[towerSensorIDX],
+        print (time.asctime(), "Scene start at %s\nINSTANT:\n\tTemp change rate=%s\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s, Forecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
+               (scenTimeStartUnsaved,
+                round(tempChangeRate, 2) if tempChangeRate else tempChangeRate,
+                cur_temp[stillSensorIDX], cur_temp[towerSensorIDX],
                 cur_temp[roomSensorIDX],
                 clrCooler, cur_temp[coolerSensorIDX], clrEnd,
                 stillTempAvg, towerTempAvg,
