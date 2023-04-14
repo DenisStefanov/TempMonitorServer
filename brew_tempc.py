@@ -63,7 +63,8 @@ def brew_tempc(gcm):
     bodyPercent  = int(config.get('Common', 'bodyPercent'))
     tailPercent  = int(config.get('Common', 'tailPercent'))
     RegID = config.get('Common', 'regid')
-
+    smsNotifyPh  = os.environ["AlarmPhoneN"]
+    
     clrRed = '\033[91m'
     clrGreen = '\033[92m'
     clrBlue = '\033[94m'
@@ -146,8 +147,7 @@ def brew_tempc(gcm):
                 scenDimmer = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[0]
                 scenDimmerCorr = ScenarioTempConfig[scenNum][5].split('=')[1].split(',')[1]
                 scenDirect = ScenarioTempConfig[scenNum][6]
-                smsNotifyPh  = ScenarioTempConfig[scenNum][7].split(',')[0]
-                smsNotifyMsg = ScenarioTempConfig[scenNum][7].split(',')[1]
+                smsNotifyMsg = ScenarioTempConfig[scenNum][7]
                 
                 #heater power calibrated at 20deg or room temperature. here we need to add correction. 1% for each 5deg
                 if float(scenDimmer) > 0 and float(scenDimmer) < 100 and scenDimmerCorr == "Rel":
@@ -222,7 +222,8 @@ def brew_tempc(gcm):
                     scenTimeStartUnsaved = None
                     stillTempList = [] #doubtful
                     towerTempList = [] #
-                    os.system("/home/pi/TempMonitorServer/smssend.sh %s '%s'" % (smsNotifyPh, smsNotifyMsg))
+                    if smsNotifyPh and smsNotifyMsg:
+                        os.system("/home/pi/TempMonitorServer/smssend.sh %s '%s'" % (smsNotifyPh, smsNotifyMsg))
                 break;
             scenNum+=1
 
