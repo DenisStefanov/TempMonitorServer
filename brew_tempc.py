@@ -4,8 +4,11 @@ import time, threading
 import datetime
 import configparser as ConfigParser
 import daemon
+import ast
 from daemon import pidfile
 import random, string
+import sqlite3
+from sqlite3 import Error
 
 import RPi.GPIO as GPIO
 from GCMXMPPClient import GCMXMPPClient
@@ -17,11 +20,21 @@ import waterControl
 
 DIMMER_FILE = os.getcwd() + "/TempMonitorServer/dimval.txt"
 CONFIG_FILE = os.getcwd() + "/TempMonitorServer/config.cfg"
+DB_FILE = os.getcwd() + "/TempMonitorServer/database.db"
 
 stillTempList = []
 towerTempList = []
 scenTimeStart = [None]*20
 scenTimeStartUnsaved = None
+heatSMSSent = None
+
+def create_connection(db_file):
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+    except Error as e:
+        print(e)
+    return conn
 
 def random_id():
     rid = ''
@@ -36,6 +49,7 @@ def reconfigScenario(scenario, scenid, val):
     config.write(configfile)
 
 def brew_tempc(gcm):
+    print("Thread %s started at %s" % (threading.get_ident(), datetime.datetime.now()))
     global stillTempList, towerTempList
     global scenTimeStartUnsaved
     config = ConfigParser.ConfigParser()
@@ -43,7 +57,7 @@ def brew_tempc(gcm):
     tempSource = config.get('Common', 'sensors')
     updInterval = int( config.get('Common', 'updateinterval'))
     ScenarioToday = config.get('Common', 'ScenarioToday')
-    fakeTempData = [float(i) for i in config.get('Common', 'fakeTempData').split(',')[:-1]]
+    fakeTempData = ast.literal_eval(config.get('Common', 'fakeTempData'))
     fixitStill = config.get('ServerConfig', 'fixtempstill')
     abstempStill = float(config.get('ServerConfig', 'absolutestill'))
     deltaStill = float(config.get('ServerConfig', 'deltastill'))
@@ -52,10 +66,10 @@ def brew_tempc(gcm):
     fixitStillByPower = config.get('ServerConfig', 'fixtempstillbypower')
     abstempTower = float(config.get('ServerConfig', 'absolutetower'))
     deltaTower = float(config.get('ServerConfig', 'deltatower'))
-    roomSensorIDX = int( config.get('ServerConfig', 'roomtempsensoridx'))
-    stillSensorIDX = int( config.get('ServerConfig', 'stilltempsensoridx'))
-    towerSensorIDX = int( config.get('ServerConfig', 'towertempsensoridx'))
-    coolerSensorIDX = int( config.get('ServerConfig', 'coolertempsensoridx'))
+    roomSensorIDX = config.get('ServerConfig', 'roomtempsensoridx')
+    stillSensorIDX = config.get('ServerConfig', 'stilltempsensoridx')
+    towerSensorIDX = config.get('ServerConfig', 'towertempsensoridx')
+    coolerSensorIDX = config.get('ServerConfig', 'coolertempsensoridx')
     pressureSensorIDX = int( config.get('ServerConfig', 'pressuresensoridx'))
     rawMatVolume = int(config.get('Common', 'rawMatVolume'))
     rawMatABV = int(config.get('Common', 'rawMatABV'))
@@ -63,7 +77,14 @@ def brew_tempc(gcm):
     bodyPercent  = int(config.get('Common', 'bodyPercent'))
     tailPercent  = int(config.get('Common', 'tailPercent'))
     RegID = config.get('Common', 'regid')
-    smsNotifyPh  = os.environ["AlarmPhoneN"]
+    
+    conn = create_connection(DB_FILE)
+    smsNotifyPh = None
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM config where key='AlarmPhoneN'")
+        smsNotifyPh = cur.fetchall()[0][0]
+        conn.close()
     
     clrRed = '\033[91m'
     clrGreen = '\033[92m'
@@ -92,14 +113,13 @@ def brew_tempc(gcm):
       sys.exit(1)
 
     if (gcm and gcm.serverRunning) or not gcm:
-      res = tempSource.getData() if config.get('Common', 'fakeTempData').split(',')[-1]!="Active" else fakeTempData
-      if res:
-        cur_temp = [res[0] if len(res) > 0 else -1, res[1] if len(res) > 1 else -1, res[2] if len(res) > 2 else -1, res[3] if len(res) > 3 else -1]
+      cur_temp = tempSource.getData() if ast.literal_eval(config.get('Common', 'fakeTempData'))['Active'] != 'yes' else fakeTempData
+      if cur_temp:
         stillTempList.append(cur_temp[stillSensorIDX])
         towerTempList.append(cur_temp[towerSensorIDX])
       
-        stillTempAvg = round(sum(stillTempList[-10:]) / len(stillTempList[-10:]), 3)
-        towerTempAvg = round(sum(towerTempList[-10:]) / len(towerTempList[-10:]), 3)
+        stillTempAvg = round(sum(stillTempList[-20:]) / len(stillTempList[-20:]), 3)
+        towerTempAvg = round(sum(towerTempList[-20:]) / len(towerTempList[-20:]), 3)
         msgType = "upd"
         
         stillAlarm = fixitStill.lower() == "true" and \
@@ -117,11 +137,11 @@ def brew_tempc(gcm):
         heat   = pc18.PowerRead()
         liqLevel = pc25.PowerRead()
 
-        if cur_temp[coolerSensorIDX] > 45 and heat == GPIO.LOW:
+        if cur_temp[coolerSensorIDX] > 40 and heat == GPIO.LOW:
             pc17.PowerCtl(GPIO.LOW)
         if cur_temp[coolerSensorIDX] < 35 or heat == GPIO.HIGH:
             pc17.PowerCtl(GPIO.HIGH)
-
+            
         dimval = 4;
         try:
             with open(DIMMER_FILE, "r") as f:
@@ -175,10 +195,21 @@ def brew_tempc(gcm):
                                                                    ScenarioTempConfig[scenNum][6], ScenarioTempConfig[scenNum][7]))
                     print ("Time in ExitCriterias. TimeStart = %s TimePassed = %s TimeLeft = %s" % (scenTimeStart, datetime.datetime.now() - scenTimeStart,
                      (scenTimeStart + datetime.timedelta(minutes=int(exitCriterias[2]))) - datetime.datetime.now()))
-                print ("Run scenario #%s. %s <%s> %s; %s <%s> %s direct = %s Dimmer = %s" % \
+
+                HeatAlarm = ""
+                if (heat == GPIO.LOW or float(scenDimmer) > 0.0) and \
+                   (float(cur_temp[towerSensorIDX]) + 1.0  < towerTempAvg or \
+                    float(cur_temp[stillSensorIDX]) + 1.0  < stillTempAvg):
+                    if smsNotifyPh and not heatSMSSent or
+                    (heatSMSSent and datetime.datetime.now() > heatSMSSent + datetime.timedelta(minutes=10)):
+                        os.system("/home/pi/TempMonitorServer/smssend.sh %s '%s'" % (smsNotifyPh, "Check heat ASAP"))
+                        heatSMSSent = datetime.datetime.now()
+                    HeatAlarm = "\nSystem seems not heating though it is supposed to"
+
+                print ("Run scenario #%s. %s <%s> %s; %s <%s> %s direct = %s Dimmer = %s HeatReading=%s%s" % \
                     (scenNum, scenTempStillMin, cur_temp[stillSensorIDX], scenTempStillMax,
-                     scenTempTowerMin, cur_temp[towerSensorIDX], scenTempTowerMax, scenDirect, scenDimmer))
-                
+                     scenTempTowerMin, cur_temp[towerSensorIDX], scenTempTowerMax, scenDirect, scenDimmer, "Off" if heat==GPIO.HIGH else "On", HeatAlarm))
+
                 f = open(DIMMER_FILE, "w")
                 f.write(str(round((float(scenDimmer)*1.2),2)))
                 f.close()
@@ -223,6 +254,7 @@ def brew_tempc(gcm):
                     stillTempList = [] #doubtful
                     towerTempList = [] #
                     if smsNotifyPh and smsNotifyMsg:
+                        print("Sending SMS from thread %s" % (threading.get_ident())) 
                         os.system("/home/pi/TempMonitorServer/smssend.sh %s '%s'" % (smsNotifyPh, smsNotifyMsg))
                 break;
             scenNum+=1
@@ -255,7 +287,7 @@ def brew_tempc(gcm):
 
         clrCooler = clrBlue if heat == GPIO.LOW else clrGreen
 
-        if cur_temp[coolerSensorIDX] > 50:
+        if cur_temp[coolerSensorIDX] > 45:
             clrCooler = clrRed
             msgType = 'alarma'
 
@@ -274,21 +306,21 @@ def brew_tempc(gcm):
         if not forecastedFinish and timeLeft and timeLeft != "N/A":
             forecastedFinish = datetime.datetime.now() + timeLeft #datetime.timedelta(minutes=int(timeLeft))
             
-        print (time.asctime(), "Scene start at %s\nINSTANT:\n\tTemp change rate=%s\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s, Forecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
+        print (time.asctime(), "Scene start at %s\nINSTANT:\n\tTemp change rate=%s\n\tStill=%s\n\tTower=%s\n\tRoom=%s\n\t%sCooler=%s%s%s\nAVERAGE:\n\tStill=%s\n\tTower=%s\nDIFF:\n\t%sStill:%s%s\n\t%sTower:%s%s\nLIMITS:\n\tStill=%s\n\tTower=%s\nTIME LEFT: %s, Forecasted Finish: %s\n%sLiqLevel=%s%s Type=%s\n" % 
                (scenTimeStartUnsaved,
                 round(tempChangeRate, 2) if tempChangeRate else tempChangeRate,
                 cur_temp[stillSensorIDX], cur_temp[towerSensorIDX],
                 cur_temp[roomSensorIDX],
-                clrCooler, cur_temp[coolerSensorIDX], clrEnd,
+                clrCooler, cur_temp[coolerSensorIDX], ' Stopped' if cooler == GPIO.HIGH else " Running", clrEnd,
                 stillTempAvg, towerTempAvg,
                 clrStillDiff, round(cur_temp[stillSensorIDX] - stillTempAvg, 3), clrEnd,
                 clrTowerDiff, round(cur_temp[towerSensorIDX] - towerTempAvg, 3), clrEnd,
-                abstempStill,abstempTower,
+                scenTempStillMax, scenTempTowerMax,
                 timeLeft,
                 forecastedFinish,
                 clrLiqLevel, liqLevel, clrEnd,
                 msgType))
-      
+        
         if gcm:
             gcm.send({'to': RegID, 'message_id': random_id(), "time_to_live" : 60, \
                       #collapse_key' : msgType, \
@@ -308,6 +340,7 @@ def brew_tempc(gcm):
         gcm.client.Process(1)
     sys.stdout.flush()
     sys.stderr.flush()
+    print("Thread %s finished at %s" % (threading.get_ident(), datetime.datetime.now()))
     
 if __name__ == "__main__":
 

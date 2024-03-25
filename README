@@ -7,3 +7,4 @@ sudo pip3 install urllib3
 sudo pip3 install ConfigParser
 sudo apt install monit
 ./compile.sh
+sqlite3 database.db < db_init.sql

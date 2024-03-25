@@ -17,7 +17,6 @@ case "$1" in
   start)
     echo "Starting TempMonitorServer"
     cd /home/pi/
-    export AlarmPhoneN=+7XXXXXXXXXX
     python3 /home/pi/TempMonitorServer/brew_tempc.py start
     ;;
   stop)
